@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>空中霸主 — QR Code</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: #000c1a;
+    background-image:
+        radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 32px 32px, 16px 16px;
+    background-position: 0 0, 8px 8px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DotGothic16', monospace;
+    color: #fff;
+    padding: 40px 20px;
+}
+
+/* Stars */
+.stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.star { position: absolute; background: #fff; animation: twinkle 2s steps(1) infinite; }
+@keyframes twinkle { 0%,49%{opacity:1} 50%,100%{opacity:0.1} }
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes titleFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+.card {
+    position: relative; z-index: 1;
+    background: #060e1a;
+    border: 4px solid #1a3a5c;
+    box-shadow: 6px 6px 0 #000;
+    padding: 40px 50px;
+    text-align: center;
+    max-width: 520px;
+    width: 100%;
+}
+
+/* Top decorative bar */
+.card::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 6px;
+    background: repeating-linear-gradient(90deg, #e52529 0 20px, #fbd000 20px 40px, #5c94fc 40px 60px, #00e400 60px 80px);
+    position: absolute;
+    top: -6px; left: -4px;
+    width: calc(100% + 8px);
+}
+
+.game-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.65rem;
+    color: #5c94fc;
+    letter-spacing: 5px;
+    margin-bottom: 8px;
+}
+
+.game-title {
+    font-family: 'DotGothic16', monospace;
+    font-size: 3.2rem;
+    color: #fbd000;
+    text-shadow: 4px 4px 0 #a06000, 6px 6px 0 #000;
+    letter-spacing: 6px;
+    margin-bottom: 6px;
+    animation: titleFloat 2.5s ease-in-out infinite;
+    display: block;
+}
+
+.game-subtitle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    color: #fff;
+    letter-spacing: 3px;
+    margin-bottom: 28px;
+    animation: blink 1.2s steps(1) infinite;
+}
+
+/* QR code wrapper */
+.qr-wrapper {
+    display: inline-block;
+    background: #fff;
+    padding: 14px;
+    border: 4px solid #fff;
+    box-shadow: 4px 4px 0 #000;
+    margin-bottom: 24px;
+    image-rendering: pixelated;
+}
+
+#qrcode canvas, #qrcode img {
+    display: block;
+    image-rendering: pixelated;
+}
+
+.scan-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    color: #5c94fc;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+}
+
+.divider {
+    width: 100%;
+    height: 3px;
+    background: repeating-linear-gradient(90deg, #1a3a5c 0 8px, transparent 8px 16px);
+    margin-bottom: 16px;
+}
+
+.url-box {
+    background: #000;
+    border: 3px solid #1a3a5c;
+    box-shadow: 3px 3px 0 #000;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+}
+
+.url-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.48rem;
+    color: #00e400;
+    word-break: break-all;
+    line-height: 1.8;
+    letter-spacing: 1px;
+}
+
+.controls-box {
+    background: #000c16;
+    border: 3px solid #1a3a5c;
+    padding: 14px 16px;
+    text-align: left;
+    margin-bottom: 0;
+}
+
+.controls-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.55rem;
+    color: #fbd000;
+    text-shadow: 1px 1px 0 #000;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    color: #6a8aaa;
+}
+
+.control-key {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.48rem;
+    color: #fff;
+    background: #1a3a5c;
+    border: 2px solid #3a6a9c;
+    box-shadow: 2px 2px 0 #000;
+    padding: 3px 7px;
+    min-width: 52px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.footer {
+    position: relative; z-index: 1;
+    margin-top: 20px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    color: #2a4a6a;
+    letter-spacing: 2px;
+}
+
+@media print {
+    body { background: #fff; background-image: none; }
+    .stars { display: none; }
+    .card { border-color: #000; box-shadow: none; background: #fff; color: #000; }
+    .card::before { background: repeating-linear-gradient(90deg, #000 0 20px, #666 20px 40px); }
+    .game-title { color: #000; text-shadow: 3px 3px 0 #666; animation: none; }
+    .game-label, .scan-hint, .controls-title { color: #333; }
+    .controls-box, .url-box { border-color: #000; background: #f0f0f0; }
+    .url-text { color: #000; }
+    .control-key { color: #000; background: #ddd; border-color: #000; }
+    .control-row { color: #333; }
+    .footer { color: #999; }
+    .divider { background: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 16px); }
+    @keyframes titleFloat { 0%,100%{transform:none} }
+    @keyframes blink { 0%,100%{opacity:1} }
+}
+    </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="card">
+    <div class="game-label">✦ SKY COMBAT ✦</div>
+    <span class="game-title">空中霸主</span>
+    <div class="game-subtitle">▶ SCAN TO PLAY ◀</div>
+
+    <div class="qr-wrapper">
+        <div id="qrcode"></div>
+    </div>
+
+    <div class="scan-hint">— 掃描 QR CODE 進入遊戲 —</div>
+
+    <div class="divider"></div>
+
+    <div class="url-box">
+        <div class="url-text" id="url-display"></div>
+    </div>
+
+    <div class="controls-box">
+        <div class="controls-title">★ 操作說明 ★</div>
+        <div class="control-row"><span class="control-key">WASD</span>移動飛機</div>
+        <div class="control-row"><span class="control-key">滑鼠</span>瞄準 / 射擊</div>
+        <div class="control-row"><span class="control-key">SPACE</span>發射飛彈</div>
+        <div class="control-row"><span class="control-key">SHIFT</span>衝刺加速</div>
+        <div class="control-row"><span class="control-key">V</span>釋放熱誘彈</div>
+    </div>
+</div>
+
+<div class="footer">★ 擊殺 20 架敵機後迎擊 BOSS ★</div>
+
+<script>
+const GAME_URL = 'https://steven77777778.github.io/steven/';
+
+document.getElementById('url-display').textContent = GAME_URL;
+
+new QRCode(document.getElementById('qrcode'), {
+    text: GAME_URL,
+    width: 220,
+    height: 220,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+});
+
+// Pixel stars
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() > 0.8 ? 2 : 1;
+    s.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%;
+        top:${Math.random()*100}%;
+        animation-delay:${(Math.random()*2).toFixed(1)}s;
+        animation-duration:${(1.5+Math.random()*2).toFixed(1)}s;
+    `;
+    starsEl.appendChild(s);
+}
+</script>
+</body>
+</html>
