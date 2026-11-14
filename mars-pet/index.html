@@ -111,9 +111,10 @@ function buildSprite(opts) {
     line(7, 21, 13, 19, 'c'); line(7, 22, 13, 20, 'c');
     rect(14, 18, 2, 3, 's');
     // 傾斜：越高的列往左移越多，腳留在原地
-    const k = d ? 3 : 4;
+    // 脖子以上再多傾一些，讓頭也跟著歪過去
+    const k = d ? 3 : 4, head = d ? 3 : 4;
     for (let y = 0; y < SH; y++) {
-      const sft = Math.round((SH - 3 - y) / SH * k);
+      const sft = Math.round((SH - 3 - y) / SH * k + Math.max(0, 16 - y) / 16 * head);
       if (sft > 0) g[y] = g[y].slice(sft).concat(Array(sft).fill('.'));
     }
   }
