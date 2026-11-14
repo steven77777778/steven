@@ -59,6 +59,7 @@ struct PetWidgetView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
+        .unredacted()   // 系統還在載入時也直接顯示火星人，不要顯示灰色佔位方塊
         // 不畫自己的底色：主畫面設成「透明」樣式時，系統會把小工具的底板換成玻璃
         .containerBackground(for: .widget) { Color.clear }
     }
