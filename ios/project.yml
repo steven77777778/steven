@@ -21,7 +21,7 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: 火星人
+        CFBundleDisplayName: "\u3164"   # 看不見的空白字元：主畫面上 app 與小工具下方不顯示名稱
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSSupportsLiveActivities: true
@@ -40,7 +40,7 @@ targets:
     info:
       path: Widget/Info.plist
       properties:
-        CFBundleDisplayName: 火星人
+        CFBundleDisplayName: "\u3164"   # 看不見的空白字元：主畫面上 app 與小工具下方不顯示名稱
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
