@@ -21,10 +21,19 @@
     text-align: center; color: #fff; opacity: .9; text-shadow: 0 1px 3px #000, 0 0 8px #000; pointer-events: none;
     font: 13px/1.4 -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; transition: opacity .6s;
   }
+  #float {
+    position: fixed; right: 14px; top: calc(env(safe-area-inset-top) + 14px);
+    padding: 9px 16px; border: 1px solid #555; border-radius: 999px; background: #1c1c1e; color: #fff;
+    font: 600 15px/1 -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; touch-action: manipulation;
+  }
+  #float:active { background: #333; }
+  #pip { position: fixed; left: 0; bottom: 0; width: 37px; height: 55px; opacity: .01; pointer-events: none; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="float">懸浮</button>
+<video id="pip" src="float.mp4" loop muted playsinline preload="auto"></video>
 <div id="hint">點一下火星人，他會向你招手 · 按住可以拖著他走</div>
 <script>
 'use strict';
@@ -208,6 +217,23 @@ window.renderIcon = size => {
   for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) if (sp[j][i] !== '.' && j + 3 < n) tile(x, (i - 1) * t, (j + 3) * t, t, PALETTE[sp[j][i]], i + 500, j + 500);
   return c.toDataURL('image/png');
 };
+
+/* ---------- 懸浮：用子母畫面讓他浮在主畫面與其他 app 上 ---------- */
+const pip = document.getElementById('pip'), hint = document.getElementById('hint');
+const say = t => { hint.textContent = t; hint.style.opacity = .9; };
+document.getElementById('float').addEventListener('click', async () => {
+  try {
+    await pip.play();
+    if (pip.webkitSupportsPresentationMode && pip.webkitSupportsPresentationMode('picture-in-picture')) {
+      const on = pip.webkitPresentationMode === 'picture-in-picture';
+      pip.webkitSetPresentationMode(on ? 'inline' : 'picture-in-picture');
+      if (!on) say('已懸浮：回到主畫面他也會跟著你，每隔幾秒招手一次');
+    } else if (document.pictureInPictureEnabled) {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else { await pip.requestPictureInPicture(); say('已懸浮：每隔幾秒招手一次'); }
+    } else say('這個瀏覽器不支援懸浮，請改用 Safari 開啟網頁再試');
+  } catch (e) { say('懸浮失敗：' + (e && e.message || e)); }
+});
 
 resize(); requestAnimationFrame(tick);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
