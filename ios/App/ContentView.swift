@@ -41,6 +41,9 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
+                Text("版本 6")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.4))
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.8))

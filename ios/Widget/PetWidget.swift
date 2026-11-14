@@ -81,23 +81,30 @@ struct PetWidgetView: View {
 
     var body: some View {
         Button(intent: WaveWidgetIntent()) {
-            Image(entry.frame)
-                .resizable()
-                .interpolation(.none)
-                .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZStack {
+                // 桌布底圖直接畫在內容裡（系統有時會把「小工具背景」拿掉，畫在內容裡才保險）
+                wallpaper
+                Image(entry.frame)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .padding(14)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
         .unredacted()   // 系統還在載入時也直接顯示火星人，不要顯示灰色佔位方塊
-        .containerBackground(for: .widget) {
-            if entry.slot == .none {
-                Color.clear
-            } else {
-                // 用那一格的桌布當底圖，和桌布接在一起
-                Image("bg-\(entry.slot.rawValue)")
-                    .resizable()
-                    .scaledToFill()
-            }
+        .containerBackground(for: .widget) { wallpaper }
+    }
+
+    /// 那一格的桌布，和主畫面桌布接在一起
+    @ViewBuilder private var wallpaper: some View {
+        if entry.slot == .none {
+            Color.clear
+        } else {
+            Image("bg-\(entry.slot.rawValue)")
+                .resizable()
+                .scaledToFill()
         }
     }
 }
@@ -110,5 +117,6 @@ struct PetWidget: Widget {
         .configurationDisplayName("火星人")
         .description("點一下，他會向你招手。")
         .supportedFamilies([.systemSmall])
+        .contentMarginsDisabled()   // 讓底圖鋪滿整個小工具
     }
 }
