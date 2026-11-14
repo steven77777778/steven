@@ -1,0 +1,42 @@
+name: Build iOS ipa
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/build-ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project MarsPet.xcodeproj -scheme MarsPet -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -n 200
+
+      - name: Package ipa
+        working-directory: ios
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/MarsPet.app Payload/
+          ls Payload/MarsPet.app Payload/MarsPet.app/PlugIns
+          zip -qry MarsPet.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarsPet-ipa
+          path: ios/MarsPet.ipa
