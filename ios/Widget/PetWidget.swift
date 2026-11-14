@@ -1,5 +1,6 @@
 import AppIntents
 import SwiftUI
+import UIKit
 import WidgetKit
 
 private let waveUntilKey = "waveUntil"
@@ -51,6 +52,7 @@ struct PetProvider: TimelineProvider {
 
 struct PetWidgetView: View {
     let entry: PetEntry
+    var keepColor = false   // 測試版：在「透明／染色」主畫面樣式下強制保留原色
 
     var body: some View {
         Button(intent: WaveWidgetIntent()) {
@@ -64,10 +66,9 @@ struct PetWidgetView: View {
         .containerBackground(for: .widget) { Color.clear }
     }
 
-    /// 在「透明／染色」主畫面樣式下保留原本的顏色，不被系統染成單色
     @ViewBuilder private var frame: some View {
-        if #available(iOS 18.0, *) {
-            Image(entry.frame)
+        if keepColor, #available(iOS 18.0, *), let ui = UIImage(named: entry.frame) {
+            Image(uiImage: ui)
                 .resizable()
                 .interpolation(.none)
                 .widgetAccentedRenderingMode(.fullColor)
@@ -86,6 +87,17 @@ struct PetWidget: Widget {
         }
         .configurationDisplayName("火星人")
         .description("點一下，他會向你招手。")
+        .supportedFamilies([.systemSmall, .systemLarge])
+    }
+}
+
+struct PetColorWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "PetColorWidget", provider: PetProvider()) { entry in
+            PetWidgetView(entry: entry, keepColor: true)
+        }
+        .configurationDisplayName("火星人（保留原色測試）")
+        .description("透明主畫面樣式下保留原本顏色的測試版。")
         .supportedFamilies([.systemSmall, .systemLarge])
     }
 }
