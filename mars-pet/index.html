@@ -8,12 +8,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="火星人">
-<meta name="theme-color" content="#141a33">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <style>
-  html, body { margin: 0; height: 100%; background: #141a33; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
   #hint {
@@ -124,37 +124,24 @@ function tile(c, x, y, t, color, seedX, seedY) {
   c.fillStyle = 'rgba(0,0,0,.12)';              // 下緣陰影
   c.beginPath(); c.roundRect(px, py + s * .78, s, s * .22, r); c.fill();
 }
-function bgColor(x, y) {
-  const h = hash(x + 91, y + 17);
-  if (y >= rows - floorRows) return h > .5 ? '#b5563f' : '#a34a38';   // 火星地面
-  if (h > .985) return '#ffe9a8';                                      // 星星
-  if (h > .97) return '#8fa3ff';
-  return ['#1b2347', '#1f2850', '#232d5a', '#1a2143'][Math.floor(h * 400) % 4];
-}
-let floorRows = 4, bg = null;
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   W = window.innerWidth; H = window.innerHeight;
   cv.width = W * dpr; cv.height = H * dpr;
   T = Math.max(5, Math.floor(Math.min(W / (SW + 3), H / (SH + 14))));
   cols = Math.ceil(W / T); rows = Math.ceil(H / T);
-  floorRows = Math.max(3, Math.round(rows * .14));
-  bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height;
-  const b = bg.getContext('2d'); b.scale(dpr, dpr);
-  b.fillStyle = '#0c1024'; b.fillRect(0, 0, W, H);
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) tile(b, x * T, y * T, T, bgColor(x, y), x, y);
   pet.x = Math.max(0, Math.min(cols - SW, pet.x ?? Math.round((cols - SW) / 2)));
   pet.y = groundY();
   dirty = true;
 }
-const groundY = () => rows - floorRows - SH + 2;
+const groundY = () => Math.max(0, rows - SH - 4);
 
 /* ---------- 狀態與動畫 ---------- */
 const pet = { x: null, y: 0, up: false, blink: false, arm: 0, waveUntil: 0, drag: null };
 let dirty = true;
 function draw() {
   if (!dirty) return; dirty = false;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);   // 去背：只畫角色
   const waving = pet.arm > 0;
   const sp = buildSprite({ up: pet.up, blink: pet.blink && !waving, arm: pet.arm });
   for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
@@ -205,6 +192,13 @@ cv.addEventListener('pointerup', end);
 cv.addEventListener('pointercancel', () => { pet.drag = null; });
 window.addEventListener('resize', resize);
 
+// 匯出去背 PNG（開發時呼叫）
+window.renderPng = (opts, t) => {
+  const c = document.createElement('canvas'); c.width = SW * t; c.height = SH * t;
+  const x = c.getContext('2d'), sp = buildSprite(opts);
+  for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) if (sp[j][i] !== '.') tile(x, i * t, j * t, t, PALETTE[sp[j][i]], i + 500, j + 500);
+  return c.toDataURL('image/png');
+};
 // 產生 App 圖示用（開發時呼叫）
 window.renderIcon = size => {
   const c = document.createElement('canvas'); c.width = c.height = size;

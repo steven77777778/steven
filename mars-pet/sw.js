@@ -1,5 +1,5 @@
 // 離線快取：先用網路的新版本，沒網路時用快取
-const CACHE = 'mars-pet-v1';
+const CACHE = 'mars-pet-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
