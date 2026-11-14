@@ -54,14 +54,27 @@ struct PetWidgetView: View {
 
     var body: some View {
         Button(intent: WaveWidgetIntent()) {
-            Image(entry.frame)
-                .resizable()
-                .interpolation(.none)
+            frame
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
-        .containerBackground(for: .widget) { Color.black }
+        // 不畫自己的底色：主畫面設成「透明」樣式時，系統會把小工具的底板換成玻璃
+        .containerBackground(for: .widget) { Color.clear }
+    }
+
+    /// 在「透明／染色」主畫面樣式下保留原本的顏色，不被系統染成單色
+    @ViewBuilder private var frame: some View {
+        if #available(iOS 18.0, *) {
+            Image(entry.frame)
+                .resizable()
+                .interpolation(.none)
+                .widgetAccentedRenderingMode(.fullColor)
+        } else {
+            Image(entry.frame)
+                .resizable()
+                .interpolation(.none)
+        }
     }
 }
 
