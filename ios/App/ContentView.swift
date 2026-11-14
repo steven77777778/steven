@@ -4,18 +4,19 @@ import SwiftUI
 struct ContentView: View {
     @State private var up = false
     @State private var blink = false
-    @State private var waveFrame = 0          // 0 = 沒在招手，1...3 = 招手的三個姿勢
+    @State private var actionFrame: String?   // 正在做動作時的圖片名稱，沒在動作時是 nil
+    @State private var danceNext = false      // 每點一次在招手和跳舞之間輪流
     @State private var waveTask: Task<Void, Never>?
     @State private var position = CGSize.zero
     @State private var dragStart = CGSize.zero
     @State private var islandOn = false
-    @State private var message = "點一下火星人，他會向你招手"
+    @State private var message = "點一下火星人，他會招手或跳舞"
 
     private let bobTimer = Timer.publish(every: 0.65, on: .main, in: .common).autoconnect()
     private let blinkTimer = Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()
 
     private var frameName: String {
-        if waveFrame > 0 { return "pet-wave\(waveFrame)" }
+        if let actionFrame { return actionFrame }
         return blink ? "pet-blink" : "pet-idle"
     }
 
@@ -41,7 +42,7 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
-                Text("版本 8")
+                Text("版本 9")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.4))
                 Text(message)
@@ -64,16 +65,26 @@ struct ContentView: View {
         .onAppear { islandOn = !Activity<PetActivityAttributes>.activities.isEmpty }
     }
 
-    /// 招手約兩秒
+    /// 招手或跳舞約兩秒
     private func wave() {
         waveTask?.cancel()
+        let dance = danceNext
+        danceNext.toggle()
         waveTask = Task { @MainActor in
-            for i in 0..<13 {
-                waveFrame = i % 3 + 1
-                try? await Task.sleep(nanoseconds: 170_000_000)
-                if Task.isCancelled { return }
+            if dance {
+                for i in 0..<6 {
+                    actionFrame = "pet-dance\(i % 2 + 1)"
+                    try? await Task.sleep(nanoseconds: 380_000_000)
+                    if Task.isCancelled { return }
+                }
+            } else {
+                for i in 0..<13 {
+                    actionFrame = "pet-wave\(i % 3 + 1)"
+                    try? await Task.sleep(nanoseconds: 170_000_000)
+                    if Task.isCancelled { return }
+                }
             }
-            waveFrame = 0
+            actionFrame = nil
         }
     }
 

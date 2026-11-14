@@ -79,9 +79,9 @@ function buildSprite(opts) {
   // 毛衣
   rect(8, 14, 10, 3, 'c'); rect(9, 17, 8, 10, 'c'); rect(9, 26, 8, 1, 'C');
   // 左手（畫面左側）自然垂下
-  rect(6, 15, 2, 13, 'c'); rect(7, 17, 1, 10, 'C'); rect(6, 28, 2, 2, 's');
+  if (!opts.dance) { rect(6, 15, 2, 13, 'c'); rect(7, 17, 1, 10, 'C'); rect(6, 28, 2, 2, 's'); }
   // 右手放下
-  if (!opts.arm) { rect(18, 15, 2, 13, 'c'); rect(18, 17, 1, 10, 'C'); rect(18, 28, 2, 2, 's'); }
+  if (!opts.arm && !opts.dance) { rect(18, 15, 2, 13, 'c'); rect(18, 17, 1, 10, 'C'); rect(18, 28, 2, 2, 's'); }
   // 章魚頭
   ellipse(13, 7.5 + hy, 6.2, 6.6, 'r');
   ellipse(10.5, 3.6 + hy, 2.4, 1.3, 'R');
@@ -101,6 +101,21 @@ function buildSprite(opts) {
     const hand = [[23, 8], [24, 10], [22, 7]][opts.arm - 1];
     line(18, 16, hand[0] - 1, hand[1] + 2, 'c');
     rect(hand[0] - 1, hand[1] - 1, 3, 3, 's');
+  }
+  // 跳舞：右手斜斜高舉，左手彎在胸前，身體微微向左傾（opts.dance = 1 或 2 兩個姿勢）
+  if (opts.dance) {
+    const d = opts.dance - 1;
+    line(18, 16, 22 - d, 6 + d, 'c'); rect(22 - d, 3 + d, 3, 3, 's');
+    rect(6, 15, 2, 7, 'c');
+    line(7, 20, 13, 18, 'o'); line(7, 23, 13, 21, 'o');
+    line(7, 21, 13, 19, 'c'); line(7, 22, 13, 20, 'c');
+    rect(14, 18, 2, 3, 's');
+    // 傾斜：越高的列往左移越多，腳留在原地
+    const k = d ? 3 : 4;
+    for (let y = 0; y < SH; y++) {
+      const sft = Math.round((SH - 3 - y) / SH * k);
+      if (sft > 0) g[y] = g[y].slice(sft).concat(Array(sft).fill('.'));
+    }
   }
 
   // 自動描外框

@@ -3,13 +3,16 @@ import SwiftUI
 import WidgetKit
 
 private let waveUntilKey = "waveUntil"
+private let danceKey = "dance"   // 這次的動作是不是跳舞（每點一次在招手和跳舞之間輪流）
 
 /// 點桌面小工具時執行：記下「招手到什麼時候」，系統會接著重新載入小工具
 struct WaveWidgetIntent: AppIntent {
     static var title: LocalizedStringResource = "招手"
 
     func perform() async throws -> some IntentResult {
-        UserDefaults.standard.set(Date().addingTimeInterval(2.4).timeIntervalSince1970, forKey: waveUntilKey)
+        let defaults = UserDefaults.standard
+        defaults.set(!defaults.bool(forKey: danceKey), forKey: danceKey)
+        defaults.set(Date().addingTimeInterval(2.4).timeIntervalSince1970, forKey: waveUntilKey)
         return .result()
     }
 }
@@ -60,11 +63,14 @@ struct PetProvider: AppIntentTimelineProvider {
         let until = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: waveUntilKey))
         var entries: [PetEntry] = []
         if now < until {
-            // 招手期間每 0.4 秒換一個姿勢，結束後回到站立
+            // 動作期間每 0.4 秒換一個姿勢，結束後回到站立
+            let frames = UserDefaults.standard.bool(forKey: danceKey)
+                ? ["pet-dance1", "pet-dance2"]
+                : ["pet-wave1", "pet-wave2", "pet-wave3"]
             var t = now
             var i = 0
             while t < until {
-                entries.append(PetEntry(date: t, frame: "pet-wave\(i % 3 + 1)", slot: slot))
+                entries.append(PetEntry(date: t, frame: frames[i % frames.count], slot: slot))
                 t = t.addingTimeInterval(0.4)
                 i += 1
             }
@@ -115,7 +121,7 @@ struct PetWidget: Widget {
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人")
-        .description("點一下，他會向你招手。")
+        .description("點一下，他會招手或跳舞。")
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()   // 讓底圖鋪滿整個小工具
     }
