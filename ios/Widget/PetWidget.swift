@@ -1,6 +1,5 @@
 import AppIntents
 import SwiftUI
-import UIKit
 import WidgetKit
 
 private let waveUntilKey = "waveUntil"
@@ -15,21 +14,48 @@ struct WaveWidgetIntent: AppIntent {
     }
 }
 
+/// 小工具放在主畫面的哪一格。底圖會換成那一格的桌布，看起來就像透明的。
+enum PetSlot: String, AppEnum {
+    case topLeft, topRight, midLeft, midRight, bottomLeft, bottomRight, none
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "主畫面位置"
+    static var caseDisplayRepresentations: [PetSlot: DisplayRepresentation] = [
+        .topLeft: "左上",
+        .topRight: "右上",
+        .midLeft: "左中",
+        .midRight: "右中",
+        .bottomLeft: "左下",
+        .bottomRight: "右下",
+        .none: "不使用桌布底圖"
+    ]
+}
+
+/// 長按小工具 →「編輯小工具」時看到的設定
+struct PetWidgetConfig: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "火星人"
+    static var description = IntentDescription("選擇小工具放在主畫面的哪個位置。")
+
+    @Parameter(title: "主畫面位置", default: .topLeft)
+    var slot: PetSlot
+}
+
 struct PetEntry: TimelineEntry {
     let date: Date
     let frame: String
+    let slot: PetSlot
 }
 
-struct PetProvider: TimelineProvider {
+struct PetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> PetEntry {
-        PetEntry(date: Date(), frame: "pet-idle")
+        PetEntry(date: Date(), frame: "pet-idle", slot: .none)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (PetEntry) -> Void) {
-        completion(PetEntry(date: Date(), frame: "pet-idle"))
+    func snapshot(for configuration: PetWidgetConfig, in context: Context) async -> PetEntry {
+        PetEntry(date: Date(), frame: "pet-idle", slot: configuration.slot)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<PetEntry>) -> Void) {
+    func timeline(for configuration: PetWidgetConfig, in context: Context) async -> Timeline<PetEntry> {
+        let slot = configuration.slot
         let now = Date()
         let until = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: waveUntilKey))
         var entries: [PetEntry] = []
@@ -38,66 +64,51 @@ struct PetProvider: TimelineProvider {
             var t = now
             var i = 0
             while t < until {
-                entries.append(PetEntry(date: t, frame: "pet-wave\(i % 3 + 1)"))
+                entries.append(PetEntry(date: t, frame: "pet-wave\(i % 3 + 1)", slot: slot))
                 t = t.addingTimeInterval(0.4)
                 i += 1
             }
-            entries.append(PetEntry(date: until, frame: "pet-idle"))
+            entries.append(PetEntry(date: until, frame: "pet-idle", slot: slot))
         } else {
-            entries.append(PetEntry(date: now, frame: "pet-idle"))
+            entries.append(PetEntry(date: now, frame: "pet-idle", slot: slot))
         }
-        completion(Timeline(entries: entries, policy: .never))
+        return Timeline(entries: entries, policy: .never)
     }
 }
 
 struct PetWidgetView: View {
     let entry: PetEntry
-    var keepColor = false   // 測試版：在「透明／染色」主畫面樣式下強制保留原色
 
     var body: some View {
         Button(intent: WaveWidgetIntent()) {
-            frame
+            Image(entry.frame)
+                .resizable()
+                .interpolation(.none)
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
         .unredacted()   // 系統還在載入時也直接顯示火星人，不要顯示灰色佔位方塊
-        // 不畫自己的底色：主畫面設成「透明」樣式時，系統會把小工具的底板換成玻璃
-        .containerBackground(for: .widget) { Color.clear }
-    }
-
-    @ViewBuilder private var frame: some View {
-        if keepColor, #available(iOS 18.0, *), let ui = UIImage(named: entry.frame) {
-            Image(uiImage: ui)
-                .resizable()
-                .interpolation(.none)
-                .widgetAccentedRenderingMode(.fullColor)
-        } else {
-            Image(entry.frame)
-                .resizable()
-                .interpolation(.none)
+        .containerBackground(for: .widget) {
+            if entry.slot == .none {
+                Color.clear
+            } else {
+                // 用那一格的桌布當底圖，和桌布接在一起
+                Image("bg-\(entry.slot.rawValue)")
+                    .resizable()
+                    .scaledToFill()
+            }
         }
     }
 }
 
 struct PetWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "PetWidget", provider: PetProvider()) { entry in
+        AppIntentConfiguration(kind: "PetWidget", intent: PetWidgetConfig.self, provider: PetProvider()) { entry in
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人")
         .description("點一下，他會向你招手。")
-        .supportedFamilies([.systemSmall, .systemLarge])
-    }
-}
-
-struct PetColorWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "PetColorWidget", provider: PetProvider()) { entry in
-            PetWidgetView(entry: entry, keepColor: true)
-        }
-        .configurationDisplayName("火星人（保留原色測試）")
-        .description("透明主畫面樣式下保留原本顏色的測試版。")
-        .supportedFamilies([.systemSmall, .systemLarge])
+        .supportedFamilies([.systemSmall])
     }
 }

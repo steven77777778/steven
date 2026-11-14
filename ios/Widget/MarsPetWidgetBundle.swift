@@ -5,7 +5,6 @@ import WidgetKit
 struct MarsPetWidgetBundle: WidgetBundle {
     var body: some Widget {
         PetWidget()
-        PetColorWidget()
         PetLiveActivity()
     }
 }
