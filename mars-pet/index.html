@@ -29,20 +29,22 @@
 <script>
 'use strict';
 /* ---------- 像素造型（要換造型只需改這一段） ---------- */
-const SW = 28, SH = 30;                       // 火星人的格數（寬 × 高）
+const SW = 27, SH = 42;                       // 火星人的格數（寬 × 高）
 const PALETTE = {
-  o: '#1d2a2a',  // 外框
-  g: '#7fd67a',  // 身體
-  l: '#b4efa6',  // 亮面
-  d: '#55ad5c',  // 暗面
+  o: '#191a26',  // 外框
+  r: '#d8434a',  // 章魚頭
+  R: '#ea6b6f',  // 頭部亮面
+  D: '#b8353d',  // 觸手暗面
   w: '#ffffff',  // 眼白
-  k: '#1b1b2a',  // 瞳孔 / 嘴
-  p: '#ff9db0',  // 腮紅
-  y: '#ffd95a',  // 觸角球
-  r: '#e8566a'   // 張開的嘴
+  k: '#26262c',  // 瞳孔 / 鞋子
+  c: '#f4e8d6',  // 米白毛衣
+  C: '#e0d0b8',  // 毛衣陰影
+  s: '#f6c9b0',  // 手
+  b: '#2c6c8c',  // 牛仔褲
+  B: '#1f5370'   // 牛仔褲陰影
 };
 
-// opts: {up: 頭部上移一格, blink: 眨眼, arm: 0 放下 / 1,2,3 招手三個位置, smile: 張嘴笑}
+// opts: {up: 頭部上移一格, blink: 眨眼, arm: 0 放下 / 1,2,3 招手三個位置}
 function buildSprite(opts) {
   const g = Array.from({ length: SH }, () => Array(SW).fill('.'));
   const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < SW && y < SH) g[y][x] = c; };
@@ -53,45 +55,44 @@ function buildSprite(opts) {
       if (dx * dx + dy * dy <= 1) set(x, y, c);
     }
   };
-  const line = (x0, y0, x1, y1, c, thick) => {
+  const line = (x0, y0, x1, y1, c) => {         // 兩格粗的線
     const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
     for (let i = 0; i <= n; i++) {
       const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
-      set(x, y, c); if (thick) set(x + 1, y, c);
+      set(x, y, c); set(x + 1, y, c);
     }
   };
   const hy = opts.up ? -1 : 0;                // 頭部位移
 
-  // 腳
-  rect(8, 26, 3, 2, 'd'); rect(15, 26, 3, 2, 'd');
-  // 身體
-  ellipse(13, 21.5, 5, 5.2, 'g');
-  rect(10, 23, 6, 2, 'd'); ellipse(13, 20.5, 4.6, 4.2, 'g');
-  // 觸角
-  line(9, 5 + hy, 7, 2 + hy, 'g'); line(16, 5 + hy, 18, 2 + hy, 'g');
-  rect(6, 1 + hy, 2, 2, 'y'); rect(18, 1 + hy, 2, 2, 'y');
-  // 頭
-  ellipse(13, 11 + hy, 8, 6.4, 'g');
-  ellipse(10.5, 7.6 + hy, 3, 1.4, 'l');       // 亮面
+  // 鞋子與牛仔褲
+  rect(9, 39, 3, 2, 'k'); rect(14, 39, 3, 2, 'k');
+  rect(9, 27, 8, 12, 'b'); rect(12, 30, 2, 9, 'B'); rect(9, 37, 1, 2, 'B'); rect(16, 37, 1, 2, 'B');
+  // 毛衣
+  rect(8, 14, 10, 3, 'c'); rect(9, 17, 8, 10, 'c'); rect(9, 26, 8, 1, 'C');
   // 左手（畫面左側）自然垂下
-  line(7, 19, 5, 22, 'g', true);
-  // 右手（畫面右側）— 招手用
-  if (!opts.arm) line(18, 19, 20, 22, 'g', true);
-  else {
-    const hand = [[24, 9], [25, 11], [22, 8]][opts.arm - 1];
-    line(18, 19, hand[0] - 1, hand[1] + 1, 'g', true);
-    rect(hand[0] - 1, hand[1] - 1, 3, 3, 'l');
+  rect(6, 15, 2, 13, 'c'); rect(7, 17, 1, 10, 'C'); rect(6, 28, 2, 2, 's');
+  // 右手放下
+  if (!opts.arm) { rect(18, 15, 2, 13, 'c'); rect(18, 17, 1, 10, 'C'); rect(18, 28, 2, 2, 's'); }
+  // 章魚頭
+  ellipse(13, 7.5 + hy, 6.2, 6.6, 'r');
+  ellipse(10.5, 3.6 + hy, 2.4, 1.3, 'R');
+  // 觸手：外側往旁邊翹，內側垂在胸前
+  line(7, 12 + hy, 4, 15 + hy, 'r'); line(17, 12 + hy, 20, 15 + hy, 'r');
+  line(9, 13 + hy, 8, 18 + hy, 'r'); line(15, 13 + hy, 16, 18 + hy, 'r');
+  line(12, 13 + hy, 12, 20 + hy, 'r');
+  rect(8, 18 + hy, 2, 1, 'D'); rect(16, 18 + hy, 2, 1, 'D'); rect(12, 20 + hy, 2, 1, 'D');
+  rect(4, 15 + hy, 2, 1, 'D'); rect(20, 15 + hy, 2, 1, 'D');
+  // 眼睛：白色橢圓加一小道黑瞳孔
+  for (const ex of [8, 14]) {
+    if (opts.blink) rect(ex, 7 + hy, 4, 1, 'k');
+    else { rect(ex + 1, 6 + hy, 2, 1, 'w'); rect(ex, 7 + hy, 4, 1, 'w'); rect(ex + 1, 8 + hy, 2, 1, 'w'); rect(ex + 1, 7 + hy, 2, 1, 'k'); }
   }
-  // 眼睛
-  if (opts.blink) { rect(7, 12 + hy, 4, 1, 'k'); rect(15, 12 + hy, 4, 1, 'k'); }
-  else {
-    rect(7, 10 + hy, 4, 4, 'w'); rect(15, 10 + hy, 4, 4, 'w');
-    rect(8, 11 + hy, 2, 2, 'k'); rect(16, 11 + hy, 2, 2, 'k');
+  // 右手舉起來招手
+  if (opts.arm) {
+    const hand = [[23, 8], [24, 10], [22, 7]][opts.arm - 1];
+    line(18, 16, hand[0] - 1, hand[1] + 2, 'c');
+    rect(hand[0] - 1, hand[1] - 1, 3, 3, 's');
   }
-  // 腮紅與嘴
-  rect(6, 14 + hy, 2, 1, 'p'); rect(18, 14 + hy, 2, 1, 'p');
-  if (opts.smile) { rect(12, 14 + hy, 2, 2, 'r'); }
-  else rect(12, 15 + hy, 2, 1, 'k');
 
   // 自動描外框
   const out = g.map(r => r.slice());
@@ -135,7 +136,7 @@ function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   W = window.innerWidth; H = window.innerHeight;
   cv.width = W * dpr; cv.height = H * dpr;
-  T = Math.max(6, Math.floor(Math.min(W / (SW + 4), H / (SH + 12))));
+  T = Math.max(5, Math.floor(Math.min(W / (SW + 3), H / (SH + 14))));
   cols = Math.ceil(W / T); rows = Math.ceil(H / T);
   floorRows = Math.max(3, Math.round(rows * .14));
   bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height;
@@ -155,7 +156,7 @@ function draw() {
   if (!dirty) return; dirty = false;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const waving = pet.arm > 0;
-  const sp = buildSprite({ up: pet.up, blink: pet.blink && !waving, arm: pet.arm, smile: waving });
+  const sp = buildSprite({ up: pet.up, blink: pet.blink && !waving, arm: pet.arm });
   for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
     const ch = sp[y][x]; if (ch === '.') continue;
     tile(ctx, (pet.x + x) * T, (pet.y + y) * T, T, PALETTE[ch], x + 500, y + 500);
@@ -183,7 +184,7 @@ function tick(now) {
 /* ---------- 觸控：點擊招手、拖曳移動 ---------- */
 const hit = (px, py) => {
   const tx = px / T - pet.x, ty = py / T - pet.y;
-  return tx >= 2 && tx < SW - 1 && ty >= 0 && ty < SH - 1;
+  return tx >= 2 && tx < SW && ty >= 0 && ty < SH;
 };
 cv.addEventListener('pointerdown', e => {
   if (!hit(e.clientX, e.clientY)) return;
@@ -207,10 +208,10 @@ window.addEventListener('resize', resize);
 // 產生 App 圖示用（開發時呼叫）
 window.renderIcon = size => {
   const c = document.createElement('canvas'); c.width = c.height = size;
-  const x = c.getContext('2d'), n = SH + 4, t = size / n, sp = buildSprite({ arm: 1, smile: true });
+  const x = c.getContext('2d'), n = 26, t = size / n, sp = buildSprite({ arm: 1 });
   x.fillStyle = '#0c1024'; x.fillRect(0, 0, size, size);
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) tile(x, i * t, j * t, t, j >= n - 3 ? '#a34a38' : '#1f2850', i, j);
-  for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) if (sp[j][i] !== '.') tile(x, (i + 3) * t, (j + 3) * t, t, PALETTE[sp[j][i]], i + 500, j + 500);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) tile(x, i * t, j * t, t, '#1f2850', i, j);
+  for (let j = 0; j < SH; j++) for (let i = 0; i < SW; i++) if (sp[j][i] !== '.' && j + 3 < n) tile(x, (i - 1) * t, (j + 3) * t, t, PALETTE[sp[j][i]], i + 500, j + 500);
   return c.toDataURL('image/png');
 };
 
