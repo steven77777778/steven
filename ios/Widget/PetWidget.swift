@@ -5,86 +5,52 @@ import WidgetKit
 private let playKey = "play"       // 點了幾次（每點一次加一，用來觸發動畫並決定播哪個動作）
 private let untilKey = "until"     // 目前的動作播到什麼時候
 
-// 小工具動畫的做法
+// 小工具動畫的做法（依實機錄影確認過的系統行為）
 //
-// 系統不保證準時更新小工具，連續排好幾個姿勢時中間的常被跳過。
-// 但「一次更新裡」交給系統的動畫（含延遲與重複）會完整、平滑地播完。
-// 所以整段動作在點擊後的那一次更新就全部交出去：
-// 把每個關節的動作拆成一小段一小段，每段是「轉多少度、延遲多久開始、花多久」，
-// 各段疊加起來就是完整的動作。每個關節各段的總和都是 0，所以播完自然回到站立，
-// 之後不管系統多晚才送來「回到站立」的更新，畫面上都不會再動。
+// 1. 小工具每次更新時，系統會把畫面從舊姿勢平滑地轉到新姿勢 —— 這個可靠。
+// 2. 系統大約一秒才肯更新一次，排得更密的更新會被丟掉。
+// 3. 一次更新裡的重複動畫、延遲動畫、關鍵影格，系統都不會播。
+//
+// 所以每個動作只用少數幾個姿勢，每個姿勢間隔一秒以上，轉動時間拉長到接近間隔，
+// 讓火星人一直在動而不是停住等；每一步都是完整的姿勢，就算中間某一步被丟掉，
+// 也只是少一個來回，最後一定回到站立。
 
-enum Ease { case inOut, out, into }
+/// 火星人的姿勢。角度的單位是度，正的是順時針。
+/// 這些數字和 pixel/preview_widget.py 裡的一致，可以用那支程式先預覽。
+struct PetPose: Equatable {
+    var armL = 0.0      // 左上臂（畫面左側）
+    var foreL = 0.0     // 左前臂相對上臂再彎的角度
+    var armR = 0.0      // 右上臂，負的是往外舉起
+    var foreR = 0.0     // 右前臂
+    var head = 0.0      // 頭歪的角度
+    var lean = 0.0      // 上半身傾斜的角度（腿留在原地）
+    var lift = 0.0      // 往上的位移（佔火星人高度的比例）
 
-/// 一小段動作：變化量（角度、位移比例，或縮放倍率）、何時開始、花多久
-struct Seg {
-    let delta: Double
-    let start: Double
-    let dur: Double
-    let ease: Ease
-
-    var animation: Animation {
-        let base: Animation
-        switch ease {
-        case .inOut: base = .easeInOut(duration: dur)
-        case .out: base = .easeOut(duration: dur)
-        case .into: base = .easeIn(duration: dur)
-        }
-        return base.delay(start)
-    }
+    static let rest = PetPose()
 }
 
-/// 把「(時間, 數值)」的關鍵點轉成一段段的變化量。起點是站立（0，縮放則是 1），最後一個關鍵點也必須回到站立。
-private func track(_ keys: [(Double, Double)], eases: [Ease] = [], ratio: Bool = false) -> [Seg] {
-    var segs: [Seg] = []
-    var t = 0.0
-    var v = ratio ? 1.0 : 0.0
-    for (i, key) in keys.enumerated() {
-        let delta = ratio ? key.1 / v : key.1 - v
-        if abs(delta - (ratio ? 1 : 0)) > 0.0001 {
-            segs.append(Seg(delta: delta, start: t, dur: key.0 - t, ease: i < eases.count ? eases[i] : .inOut))
-        }
-        t = key.0
-        v = key.1
-    }
-    return segs
+/// 動作裡的一步：轉到這個姿勢、轉多久
+struct PetStep {
+    var pose: PetPose
+    var seconds: Double
 }
 
-/// 一個完整的動作。角度單位是度，正的是順時針。
-struct Move {
-    var armL: [Seg] = []     // 左上臂（畫面左側）
-    var foreL: [Seg] = []    // 左前臂相對上臂再彎
-    var armR: [Seg] = []     // 右上臂，負的是往外舉起
-    var foreR: [Seg] = []    // 右前臂
-    var head: [Seg] = []     // 頭歪
-    var lean: [Seg] = []     // 上半身傾斜（腿留在原地）
-    var lift: [Seg] = []     // 往上跳（佔小工具高度的比例）
-    var squash: [Seg] = []   // 上下壓扁的倍率
-    var frontL = false       // 這個動作裡，左手要不要畫在頭的前面
-    var frontR = false
-    var total: Double        // 整段動作的長度（秒）
-}
+private let stepGap = 1.15   // 每一步之間的間隔（秒），要比系統願意更新的最短間隔長
 
-private let moves: [Move] = [
-    // 招手：右手往右上舉，前臂左右揮三次
-    Move(armR: track([(0.3, -115), (1.55, -115), (1.85, 0)]),
-         foreR: track([(0.3, -20), (0.5, -72), (0.7, -12), (0.9, -72), (1.1, -12), (1.3, -72), (1.55, -20), (1.85, 0)]),
-         head: track([(0.3, 4), (1.55, 4), (1.85, 0)]),
-         frontR: true, total: 1.85),
+private let waveA = PetPose(armR: -115, foreR: -70, head: 4)
+private let waveB = PetPose(armR: -115, foreR: -10, head: 4)
+private let danceL = PetPose(armL: 22, foreL: -128, armR: -135, foreR: -12, head: -7, lean: -8)
+private let danceR = PetPose(armL: 135, foreL: 12, armR: -22, foreR: 128, head: 7, lean: 8)
+private let cheer = PetPose(armL: 150, foreL: 14, armR: -150, foreR: -14, lift: 0.05)
+
+private let actions: [[PetStep]] = [
+    // 招手：右手舉到頭旁邊，前臂往外、往內揮
+    [PetStep(pose: waveA, seconds: 0.5), PetStep(pose: waveB, seconds: 0.8),
+     PetStep(pose: waveA, seconds: 0.8), PetStep(pose: .rest, seconds: 0.5)],
     // 火星人舞：左傾時右手高舉、左手彎在胸前，再換邊
-    Move(armL: track([(0.35, 22), (0.6, 22), (1.05, 135), (1.4, 135), (1.8, 0)]),
-         foreL: track([(0.35, -128), (0.6, -128), (1.05, 12), (1.4, 12), (1.8, 0)]),
-         armR: track([(0.35, -135), (0.6, -135), (1.05, -22), (1.4, -22), (1.8, 0)]),
-         foreR: track([(0.35, -12), (0.6, -12), (1.05, 128), (1.4, 128), (1.8, 0)]),
-         head: track([(0.35, -7), (0.6, -7), (1.05, 7), (1.4, 7), (1.8, 0)]),
-         lean: track([(0.35, -8), (0.6, -8), (1.05, 8), (1.4, 8), (1.8, 0)]),
-         frontL: true, frontR: true, total: 1.8),
-    // 跳躍：蹲下、雙手上舉跳起、落地、站好
-    Move(armL: track([(0.2, -14), (0.45, 160), (0.8, 160), (1.0, 62), (1.25, 0)]),
-         armR: track([(0.2, 14), (0.45, -160), (0.8, -160), (1.0, -62), (1.25, 0)]),
-         lift: track([(0.2, 0), (0.5, 0.14), (0.82, 0)], eases: [.inOut, .out, .into]),
-         squash: track([(0.2, 0.86), (0.4, 1.04), (0.82, 1.0), (0.95, 0.86), (1.25, 1.0)], ratio: true),
-         frontL: true, frontR: true, total: 1.25)
+    [PetStep(pose: danceL, seconds: 0.6), PetStep(pose: danceR, seconds: 0.9), PetStep(pose: .rest, seconds: 0.6)],
+    // 歡呼：雙手高舉、身體往上
+    [PetStep(pose: cheer, seconds: 0.5), PetStep(pose: .rest, seconds: 0.5)]
 ]
 
 /// 點桌面小工具時執行：記下點擊次數，系統會接著重新載入小工具
@@ -95,7 +61,8 @@ struct WaveWidgetIntent: AppIntent {
         let defaults = UserDefaults.standard
         let play = defaults.integer(forKey: playKey) + 1
         defaults.set(play, forKey: playKey)
-        defaults.set(Date().addingTimeInterval(moves[play % moves.count].total + 0.5).timeIntervalSince1970, forKey: untilKey)
+        let steps = actions[play % actions.count]
+        defaults.set(Date().addingTimeInterval(stepGap * Double(steps.count - 1) + 0.3).timeIntervalSince1970, forKey: untilKey)
         return .result()
     }
 }
@@ -127,7 +94,7 @@ struct PetWidgetConfig: WidgetConfigurationIntent {
 
 struct PetEntry: TimelineEntry {
     let date: Date
-    var active = -1      // 正在播第幾個動作，-1 是站立
+    var step = PetStep(pose: .rest, seconds: 0.4)
     let slot: PetSlot
 }
 
@@ -147,9 +114,14 @@ struct PetProvider: AppIntentTimelineProvider {
         let until = Date(timeIntervalSince1970: defaults.double(forKey: untilKey))
         var entries: [PetEntry] = []
         if now < until {
-            // 只要兩次更新：開始播這個動作，以及播完後標記回站立
-            entries.append(PetEntry(date: now, active: defaults.integer(forKey: playKey) % moves.count, slot: slot))
-            entries.append(PetEntry(date: until, slot: slot))
+            // 依序排入這個動作的每一步，最後一步是回到站立
+            var t = now
+            for step in actions[defaults.integer(forKey: playKey) % actions.count] {
+                entries.append(PetEntry(date: t, step: step, slot: slot))
+                t = t.addingTimeInterval(stepGap)
+            }
+            // 保險：萬一「回到站立」那一步被系統丟掉，稍後再送一次
+            entries.append(PetEntry(date: t.addingTimeInterval(1.0), slot: slot))
         } else {
             entries.append(PetEntry(date: now, slot: slot))
         }
@@ -165,7 +137,9 @@ struct PetWidgetView: View {
             ZStack {
                 // 桌布底圖直接畫在內容裡（系統有時會把「小工具背景」拿掉，畫在內容裡才保險）
                 wallpaper
-                PuppetView(active: entry.active).padding(4)   // 圖片本身四周已留白，供動作伸展
+                PuppetView(pose: entry.step.pose)
+                    .animation(.easeInOut(duration: entry.step.seconds), value: entry.step.pose)
+                    .padding(4)   // 圖片本身四周已留白，供動作伸展
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -189,86 +163,47 @@ struct PetWidgetView: View {
 /// 把各層圖疊起來，各自繞著關節轉動。每張圖的畫布都是 44×54 像素，
 /// 關節位置用這個畫布上的像素座標表示。靜止時疊起來和完整的像素圖一模一樣。
 struct PuppetView: View {
-    let active: Int      // 正在播第幾個動作，-1 是站立
-
-    /// 回到站立時所有小段同時、用同一條曲線歸零，總和一直是 0，所以畫面不會動
-    private static let reset = Animation.linear(duration: 0.05)
+    let pose: PetPose
 
     private func unit(_ x: Double, _ y: Double) -> UnitPoint {
         UnitPoint(x: x / 44, y: y / 54)
     }
 
-    private func layer(_ name: String) -> AnyView {
-        AnyView(Image("pet-part-\(name)").resizable().interpolation(.none))
-    }
-
-    /// 把某個關節在每個動作裡的每一小段，各包成一層旋轉
-    private func turned(_ view: AnyView, _ pick: (Move) -> [Seg], anchor: UnitPoint) -> AnyView {
-        var out = view
-        for (k, move) in moves.enumerated() {
-            let on = active == k
-            for seg in pick(move) {
-                out = AnyView(out
-                    .rotationEffect(.degrees(on ? seg.delta : 0), anchor: anchor)
-                    .animation(on ? seg.animation : PuppetView.reset, value: on))
-            }
-        }
-        return out
-    }
-
-    private func squashed(_ view: AnyView) -> AnyView {
-        var out = view
-        for (k, move) in moves.enumerated() {
-            let on = active == k
-            for seg in move.squash {
-                out = AnyView(out
-                    .scaleEffect(x: 1, y: on ? seg.delta : 1, anchor: unit(22, 51.5))
-                    .animation(on ? seg.animation : PuppetView.reset, value: on))
-            }
-        }
-        return out
-    }
-
-    private func lifted(_ view: AnyView, height: Double) -> AnyView {
-        var out = view
-        for (k, move) in moves.enumerated() {
-            let on = active == k
-            for seg in move.lift {
-                out = AnyView(out
-                    .offset(y: on ? -seg.delta * height : 0)
-                    .animation(on ? seg.animation : PuppetView.reset, value: on))
-            }
-        }
-        return out
+    private func layer(_ name: String) -> some View {
+        Image("pet-part-\(name)")
+            .resizable()
+            .interpolation(.none)
     }
 
     /// 一隻手：前臂繞手肘轉，整隻手再繞肩膀轉。
-    /// 每隻手有兩份：一份在頭的後面（垂著時觸手蓋在上面），一份在頭的前面（舉起來時用），同一時間只顯示一份。
-    private func arm(_ side: String, x: Double, upper: (Move) -> [Seg], fore: (Move) -> [Seg],
-                     front: (Move) -> Bool, frontCopy: Bool) -> some View {
-        let forearm = turned(layer("fore\(side)"), fore, anchor: unit(x, 31.2))
-        let whole = turned(AnyView(ZStack { layer("upper\(side)"); forearm }), upper, anchor: unit(x, 25.6))
-        let showFront = active >= 0 && front(moves[active])
-        return whole
-            .opacity(frontCopy == showFront ? 1 : 0)
-            .animation(PuppetView.reset, value: showFront)
+    /// 每隻手畫兩份：一份在頭的後面（垂著時觸手蓋在上面），一份在頭的前面（舉起來時用），同一時間只顯示一份。
+    private func arm(_ side: String, upper: Double, fore: Double, x: Double, front: Bool) -> some View {
+        let raised = abs(upper) > 45 || abs(fore) > 45
+        return ZStack {
+            layer("upper\(side)")
+            layer("fore\(side)")
+                .rotationEffect(.degrees(fore), anchor: unit(x, 31.2))
+        }
+        .rotationEffect(.degrees(upper), anchor: unit(x, 25.6))
+        .opacity(raised == front ? 1 : 0)
     }
 
     var body: some View {
         GeometryReader { geo in
-            let upperBody = AnyView(ZStack {
-                layer("torso")
-                arm("L", x: 16.5, upper: { $0.armL }, fore: { $0.foreL }, front: { $0.frontL }, frontCopy: false)
-                arm("R", x: 27.5, upper: { $0.armR }, fore: { $0.foreR }, front: { $0.frontR }, frontCopy: false)
-                turned(layer("head"), { $0.head }, anchor: unit(22, 24))
-                arm("L", x: 16.5, upper: { $0.armL }, fore: { $0.foreL }, front: { $0.frontL }, frontCopy: true)
-                arm("R", x: 27.5, upper: { $0.armR }, fore: { $0.foreR }, front: { $0.frontR }, frontCopy: true)
-            })
-            let figure = AnyView(ZStack {
+            ZStack {
                 layer("legs")
-                turned(upperBody, { $0.lean }, anchor: unit(22, 37.2))
-            })
-            lifted(squashed(figure), height: geo.size.height)
+                ZStack {
+                    layer("torso")
+                    arm("L", upper: pose.armL, fore: pose.foreL, x: 16.5, front: false)
+                    arm("R", upper: pose.armR, fore: pose.foreR, x: 27.5, front: false)
+                    layer("head")
+                        .rotationEffect(.degrees(pose.head), anchor: unit(22, 24))
+                    arm("L", upper: pose.armL, fore: pose.foreL, x: 16.5, front: true)
+                    arm("R", upper: pose.armR, fore: pose.foreR, x: 27.5, front: true)
+                }
+                .rotationEffect(.degrees(pose.lean), anchor: unit(22, 37.2))
+            }
+            .offset(y: -pose.lift * geo.size.height)
         }
         .aspectRatio(44.0 / 54, contentMode: .fit)
     }
@@ -280,7 +215,7 @@ struct PetWidget: Widget {
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人")
-        .description("點一下，他會做一個動作。")
+        .description("點一下，他會招手、跳舞或歡呼。")
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()   // 讓底圖鋪滿整個小工具
     }
