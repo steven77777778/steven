@@ -216,7 +216,7 @@ VARIANTS = {
 
 # ---------------------------------------------------------------- 姿勢 → 像素
 # 分層輸出用：每一層包含哪些部位編號
-LAYERS = {"body": {1, 2, 3, 4, 11, 12}, "armL": {5, 25}, "armR": {6, 26},
+LAYERS = {"legs": {1, 2, 3, 11, 12}, "torso": {4}, "upperL": {5}, "foreL": {7, 25}, "upperR": {6}, "foreR": {8, 26},
           "head": set(range(30, 40)) | {50}}
 
 REST = dict(dy=0, lean=0, tilt=0, bob=0, squash=1.0, sway=0.0, sway_amp=5.0, flare=0.0, eyes="open",
@@ -265,8 +265,12 @@ def render(d, pose, only=None):
         w = (e[0] + side * L2 * math.sin(a), e[1] + L2 * math.cos(a))
         hnd = (e[0] + side * (L2 + 0.9 * u) * math.sin(a), e[1] + (L2 + 0.9 * u) * math.cos(a))
         s0, e, w, hnd = (pt(body, *q) for q in (s0, e, w, hnd))
-        c.paint(c.capsule(s0, e, r) | c.capsule(e, w, r) | c.capsule(hnd, hnd, d["hand"]), "sweater", part,
-                sep_of("sweater"))
+        upper, fore = c.capsule(s0, e, r), c.capsule(e, w, r) | c.capsule(hnd, hnd, d["hand"])
+        if c.allow is None:
+            c.paint(upper | fore, "sweater", part, sep_of("sweater"))
+        else:                                     # 分層輸出：上臂與前臂（含手掌）分開
+            c.paint(upper, "sweater", part)
+            c.paint(fore, "sweater", part + 2)
         c.paint(c.capsule(hnd, hnd, d["hand"]), "skin", part + 20)      # 手掌畫在袖口上，不被分隔線蓋掉
 
     for part, side, spec in ((5, -1, p["armL"]), (6, 1, p["armR"])):
