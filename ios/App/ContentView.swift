@@ -13,14 +13,15 @@ private struct AppPetAction: Identifiable {
 
 private let appActions: [AppPetAction] = [
     .init(id: "bat",      label: "球棒擊破 💥", subtitle: "火星人 — 開場雙手揮棒擊碎紅墨",        refNote: "對應截圖 #01-#04, #57-#59", frameMs: 110, loops: 2),
-    .init(id: "pingpong", label: "打乒乓球 🏓", subtitle: "Huǒxīng rén · 価値観が脳の反射だったら", refNote: "對應截圖 #51-#52",          frameMs: 115, loops: 3),
+    .init(id: "wave",     label: "揮手 👋",     subtitle: "やあ",                                  refNote: "右手舉起來左右揮",          frameMs: 120, loops: 2),
+    .init(id: "wavejoy",  label: "開心揮手 😊", subtitle: "やあ！",                                refNote: "揮手，眼睛瞇成弧形",        frameMs: 120, loops: 2),
 ]
 
 struct ContentView: View {
     @State private var idleFrame = 0
     @State private var activeSprite: String?
     @State private var activeLabel = "今日も火星が見える"
-    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 19"
+    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 20"
     @State private var activeActionId = "idle"
     @State private var nextIdx = 0
     @State private var actionTask: Task<Void, Never>?
@@ -210,7 +211,7 @@ struct ContentView: View {
                 let frame = i % 8
                 activeSprite = "pet-\(action.id)-\(frame)"
                 if breaksGlass && frame == 3 {
-                    glassCrackedOrigin = UnitPoint(x: 0.74, y: 0.76)
+                    glassCrackedOrigin = UnitPoint(x: 0.18, y: 0.63)   // 球棒往左下砸的落點
                     glassFlash = true
                     withAnimation(.interactiveSpring(response: 0.08, dampingFraction: 0.25)) {
                         shakeX = (i % 2 == 0 ? 7 : -7)
@@ -238,7 +239,7 @@ struct ContentView: View {
                 }
             }
             activeLabel = "今日も火星が見える"
-            activeRefNote = "待機呼吸中 (#64/#80) · 版本 19"
+            activeRefNote = "待機呼吸中 (#64/#80) · 版本 20"
         }
     }
 

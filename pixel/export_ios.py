@@ -13,6 +13,7 @@ from PIL import Image
 import generate as g
 
 DESIGN = g.DESIGN_MV
+CROP = (12, 14, 89, 105)     # 每一格裁切的範圍（左、上、右、下），和 pixel/preview_glass.py 一致
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")
 
@@ -39,32 +40,23 @@ def main():
     for path in glob.glob(os.path.join(SPRITES, "bg-*.bmp")):
         save_bmp(os.path.basename(path)[:-4], Image.open(path))
 
-    # 1. 輸出保留的動畫（每組 8 格原生 96×108 透明像素 BMP）
-    for name, _, fn, _ in g.ANIMS:
-        for i in range(g.FRAMES):
-            im = g.to_image(g.render(DESIGN, fn(i / g.FRAMES)))
-            save_bmp(f"pet-{name}-{i}", im)
-
-    # 2. 輸出分層備援圖（供相容模式或預覽使用）
-    straight = dict(armL=(0, 0, False), armR=(0, 0, False))
-    layers = {k: np.array(g.to_image(g.render(DESIGN, straight, only=k))) for k in g.LAYERS}
-    line = np.array([*g.PALETTE["line"], 255])
-    is_line = {k: (v == line).all(axis=2) for k, v in layers.items()}
-    fill = {k: (v[..., 3] > 0) & ~is_line[k] for k, v in layers.items()}
-    for a, others in {
-        "foreL": ["upperL"], "upperL": ["foreL"],
-        "foreR": ["upperR"], "upperR": ["foreR"],
-        "torso": ["legs"], "head": ["torso", "upperL", "upperR"]
-    }.items():
-        for o in others:
-            layers[a][is_line[a] & fill[o]] = 0
-    for k, v in layers.items():
-        save_bmp(f"pet-part-{k}", Image.fromarray(v, "RGBA"))
+    # 1. 輸出動畫。每一格都裁成同一個範圍：CROP 是所有格子合起來的外框再留 2 像素，
+    #    這樣火星人在小工具裡會盡量大，而且各格之間位置不會跳。
+    frames = {(name, i): g.to_image(g.render(DESIGN, fn(i / g.FRAMES)))
+              for name, _, fn, _ in g.ANIMS for i in range(g.FRAMES)}
+    alpha = np.zeros((DESIGN["H"], DESIGN["W"]), bool)
+    for im in frames.values():
+        alpha |= np.array(im)[..., 3] > 0
+    xs, ys = np.where(alpha.any(axis=0))[0], np.where(alpha.any(axis=1))[0]
+    box = (max(0, xs.min() - 2), max(0, ys.min() - 2), min(DESIGN["W"], xs.max() + 3), min(DESIGN["H"], ys.max() + 3))
+    assert box == CROP, f"裁切範圍變了：{box}，請同步更新 CROP 和 Swift 裡的擊中位置"
+    for (name, i), im in frames.items():
+        save_bmp(f"pet-{name}-{i}", im.crop(CROP))
 
     # 3. 靈動島（Dynamic Island）專用的章魚頭特寫（確保四角透明，對齊 96×108 高精細畫布）
     head_crop = g.to_image(g.render(DESIGN, {})).crop((28, 16, 68, 56))
     save_bmp("pet-head", head_crop)
-    save_bmp("pet-head-happy", g.to_image(g.render(DESIGN, {"eyes": "wide"})).crop((28, 16, 68, 56)))
+    save_bmp("pet-head-happy", g.to_image(g.render(DESIGN, {"eyes": "joy"})).crop((28, 16, 68, 56)))
 
     total = len(glob.glob(os.path.join(SPRITES, "*.bmp")))
     print(f"Exported {total} BMP files to {SPRITES}")

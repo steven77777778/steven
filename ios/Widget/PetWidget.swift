@@ -5,17 +5,19 @@ import WidgetKit
 private let playKey = "mars_play_idx"
 private let untilKey = "mars_play_until"
 
-/// 小工具裡的動作：平常是待機呼吸，點一下輪流播球棒、乒乓球（每組 8 格原生像素）。
+/// 小工具裡的動作：平常是待機呼吸，點一下依序播球棒、揮手、開心揮手（每組 8 格原生像素）。
 enum MarsWidgetAction: String, CaseIterable, AppEnum {
     case idle
     case bat
-    case pingpong
+    case wave
+    case wavejoy
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "點擊後的動作"
     static var caseDisplayRepresentations: [MarsWidgetAction: DisplayRepresentation] = [
-        .idle:     "輪流播放球棒、乒乓球（推薦）",
+        .idle:     "依序播放球棒、揮手、開心揮手（推薦）",
         .bat:      "固定：球棒擊破紅墨",
-        .pingpong: "固定：胸前顛乒乓球"
+        .wave:     "固定：揮手",
+        .wavejoy:  "固定：開心揮手"
     ]
 
     /// 8 格播完一輪的秒數
@@ -23,7 +25,8 @@ enum MarsWidgetAction: String, CaseIterable, AppEnum {
         switch self {
         case .idle:     return 1.50
         case .bat:      return 0.96
-        case .pingpong: return 0.96
+        case .wave:     return 0.96
+        case .wavejoy:  return 0.96
         }
     }
 
@@ -36,7 +39,7 @@ enum MarsWidgetAction: String, CaseIterable, AppEnum {
         (0..<8).map { "pet-\(rawValue)-\($0)" }
     }
 
-    static let tapRotation: [MarsWidgetAction] = [.bat, .pingpong]
+    static let tapRotation: [MarsWidgetAction] = [.bat, .wave, .wavejoy]
 }
 
 /// 點擊桌面小工具時執行：切換到下一個動作，播完自動回到待機呼吸
@@ -94,8 +97,7 @@ struct PetWidgetConfig: WidgetConfigurationIntent {
     @Parameter(title: "點擊動作偏好", default: .idle)
     var pinnedAction: MarsWidgetAction
 
-    // 預設關閉：透明底圖上不需要玻璃碎裂效果
-    @Parameter(title: "揮棒時敲碎玻璃的特效", default: false)
+    @Parameter(title: "揮棒時敲碎玻璃的特效", default: true)
     var shatterGlass: Bool
 }
 
@@ -109,7 +111,7 @@ struct PetEntry: TimelineEntry {
 
 struct PetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> PetEntry {
-        PetEntry(date: .now, action: .idle, style: .bottomRight, shatterGlass: false, crackedAftermathBy: nil)
+        PetEntry(date: .now, action: .idle, style: .bottomRight, shatterGlass: true, crackedAftermathBy: nil)
     }
 
     func snapshot(for configuration: PetWidgetConfig, in context: Context) async -> PetEntry {
@@ -199,9 +201,9 @@ struct PetWidgetView: View {
 
     private func impactPoint(for act: MarsWidgetAction) -> UnitPoint {
         if family == .systemMedium {
-            return UnitPoint(x: 0.62, y: 0.74)
+            return UnitPoint(x: 0.36, y: 0.65)
         } else {
-            return UnitPoint(x: 0.74, y: 0.74)
+            return UnitPoint(x: 0.22, y: 0.65)   // 球棒往左下砸的落點（和 pixel/preview_glass.py 的 IMPACT 一致）
         }
     }
 
@@ -254,8 +256,8 @@ struct PetWidgetView: View {
                 frameNames: entry.action.frameNames,
                 cycleDuration: entry.action.cycleDuration
             )
-            .padding(.vertical, 6)
-            .padding(.horizontal, family == .systemMedium ? 24 : 6)
+            .padding(.vertical, 2)      // 圖片已裁掉四周空白，留一點邊就好，火星人才會大
+            .padding(.horizontal, family == .systemMedium ? 24 : 2)
         }
     }
 
@@ -331,7 +333,7 @@ struct PetWidget: Widget {
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人桌寵")
-        .description("平常待機呼吸，點一下輪流播球棒、乒乓球。")
+        .description("平常待機呼吸，點一下依序播球棒、揮手、開心揮手。")
         .supportedFamilies([.systemSmall])   // 桌布底圖只對應小尺寸的六個位置
         .contentMarginsDisabled()
     }
