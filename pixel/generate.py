@@ -180,6 +180,35 @@ DESIGNS = {
 }
 
 
+# ---------------------------------------------------------------- 方案 A 的十組微調
+T5 = [(-5.6, 62, 5.2, 14), (-3.4, 10, 6.6, -6), (0, 0, 8.4, 0), (3.4, -10, 6.6, 6), (5.6, -62, 5.2, -14)]
+T7 = [(-5.8, 64, 5.0, 16), (-4.2, 24, 5.4, -8), (-2.2, 6, 6.4, -3), (0, 0, 7.4, 0),
+      (2.2, -6, 6.4, 3), (4.2, -24, 5.4, 8), (5.8, -64, 5.0, -16)]
+
+
+def tent(base, sx=1.0, sl=1.0):
+    return [(x * sx, a, L * sl, c) for x, a, L, c in base]
+
+
+BIG_HEAD = dict(head=(16.4, 8.6, 8.0), face=(21.0, 7.2, 5.0), hi=(-3.8, 11.0, 2.8, 1.5),
+                eye=(3.9, 17.2), tent_y=23.0, tentacles=tent(T5, 1.22, 1.0))
+VARIANTS = {
+    "A1": humanoid(1.0, note="原版"),
+    "A2": humanoid(1.0, note="頭放大", **BIG_HEAD),
+    "A3": humanoid(1.0, note="觸手加粗、末端不加深", tent_r=1.55, tips=False, tentacles=tent(T5, 1.0, 0.95)),
+    "A4": humanoid(1.0, note="7 條細觸手、較短", tentacles=T7, tent_r=0.8),
+    "A5": humanoid(1.0, note="身體內部不用黑線，改用陰影色分隔", sep="shade"),
+    "A6": humanoid(1.0, note="外框改成各部位的深色", outline="tint", sep="shade"),
+    "A7": humanoid(1.0, note="身形修長：窄肩、長腿", torso=(29.6, 4.5, 6.0, 1.6), hem=35.2, shoulder=(5.5, 25.6),
+                   hips=(37.0, 4.5, 2.2), hip=(2.25, 37.2), leg_r=2.25, shoe=(2.25, 1.5)),
+    "A8": humanoid(1.0, note="寬鬆毛衣：身體較寬、手臂微張", torso=(30.6, 5.8, 7.1, 2.2), hem=37.2,
+                   shoulder=(6.8, 25.8), rest_arm=9, arm=(5.8, 5.6, 1.3), hand=1.4),
+    "A9": humanoid(1.0, note="大眼睛、位置略低", eyes=EYES_L, eye=(3.6, 18.2)),
+    "A10": humanoid(1.0, note="綜合：大頭 + 粗觸手 + 柔和線條 + 明暗", tent_r=1.5, tips=False, sep="shade",
+                    outline="tint", shade=True, **dict(BIG_HEAD, tentacles=tent(T5, 1.22, 0.95))),
+}
+
+
 # ---------------------------------------------------------------- 姿勢 → 像素
 REST = dict(dy=0, lean=0, tilt=0, bob=0, squash=1.0, sway=0.0, sway_amp=5.0, flare=0.0, eyes="open",
             armL=(4, 0, False), armR=(4, 0, False), legL=(0, 0), legR=(0, 0))
@@ -187,7 +216,9 @@ REST = dict(dy=0, lean=0, tilt=0, bob=0, squash=1.0, sway=0.0, sway_amp=5.0, fla
 
 def render(d, pose):
     """依姿勢參數畫出一格。回傳 Canvas。"""
-    p = dict(REST, **pose)
+    ra = d.get("rest_arm", 4)
+    p = dict(REST, armL=(ra, 0, False), armR=(ra, 0, False))
+    p.update(pose)
     c = Canvas(d["W"], d["H"], list(PALETTE))
     cx, ground, u = d["cx"], d["ground"], d["u"]
     dy = round(p["dy"] * u)                      # 位移一律取整數像素，形狀才不會抖動
@@ -242,7 +273,8 @@ def render(d, pose):
         p2 = (p1[0] + 0.45 * L * math.sin(b), p1[1] + 0.45 * L * math.cos(b))
         p0, p1, p2 = (pt(head, *q) for q in (p0, p1, p2))
         c.paint(c.capsule(p0, p1, d["tent_r"]) | c.capsule(p1, p2, d["tent_r"]), "head", 30 + i)
-        c.paint(c.capsule(p2, p2, d["tent_r"]), "head_sh", 30 + i)             # 末端較深
+        if d.get("tips", True):
+            c.paint(c.capsule(p2, p2, d["tent_r"]), "head_sh", 30 + i)         # 末端較深
     # 5. 頭
     hcy2, hrx, hry = d["head"]
     fcy, frx, fry = d["face"]
@@ -412,7 +444,37 @@ def main():
             for i in range(FRAMES):
                 strip.paste(on_bg(frames[key][name][i], sc), (150 + i * w, j * (h + 6)))
         strip.save(os.path.join(OUT, f"frames-{key}.png"))
+    variants_sheet()
     print("done →", OUT)
+
+
+def variants_sheet():
+    """方案 A 的十組微調：靜態對照圖、招手動畫對照，以及每組的原生像素圖。"""
+    vdir = os.path.join(OUT, "variants")
+    os.makedirs(vdir, exist_ok=True)
+    sc, cols = 7, 5
+    f1, f2 = font(26), font(15)
+    first = next(iter(VARIANTS.values()))
+    w, h = first["W"] * sc, first["H"] * sc
+    cw, ch = w + 24, h + 70
+
+    def sheet(pose):
+        out = Image.new("RGB", (cw * cols, ch * 2), BG)
+        dr = ImageDraw.Draw(out)
+        for i, (key, d) in enumerate(VARIANTS.items()):
+            x, y = (i % cols) * cw, (i // cols) * ch
+            out.paste(on_bg(to_image(render(d, pose)), sc), (x + 12, y + 64))
+            dr.text((x + 12, y + 8), key, font=f1, fill=(20, 30, 40))
+            dr.text((x + 12, y + 40), d["note"], font=f2, fill=(40, 60, 70))
+        return out
+
+    for key, d in VARIANTS.items():
+        to_image(render(d, {})).save(os.path.join(vdir, f"{key}.png"))
+    sheet({}).save(os.path.join(OUT, "variants-A.png"))
+    frames = [sheet(anim_wave(i / FRAMES)) for i in range(FRAMES)]
+    frames += [sheet(anim_dance(i / FRAMES)) for i in range(FRAMES)]
+    frames[0].save(os.path.join(OUT, "variants-A-motion.gif"), save_all=True, append_images=frames[1:],
+                   duration=130, loop=0, disposal=1)
 
 
 if __name__ == "__main__":
