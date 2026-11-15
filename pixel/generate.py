@@ -321,6 +321,7 @@ REST = dict(
     bubble=0.0,                     # #08-#11 側身吹紅氣球進度
     cup_mouth=False,                # #08 側身雙手捧嘴
     bat=None,
+    ball=None,                      # 紅球：(x, y, 拖尾方向, 是否正被擊中)；x 為 None 時握在左手掌心
     two_hands=False,                # 雙手握棒：前臂橫過身體時要描邊，兩隻手掌畫在球棒上
     paint_arc=None,
     red_bar=None,
@@ -711,6 +712,24 @@ def render(d=DESIGN_MV, pose=None, only=None):
                     px_s, py_s = sx_c + math.cos(rad_s) * dist, sy_c + math.sin(rad_s) * dist
                     c.paint_fx(c.capsule((px_s, py_s), (px_s + math.cos(rad_s) * 2.2, py_s + math.sin(rad_s) * 2.2), rr), "red_ink")
 
+        # (D2) 紅球：握在左手、拋起、被球棒擊中、帶著拖尾飛出去
+        if p["ball"] is not None:
+            bx_b, by_b, trail, hit = p["ball"]
+            if bx_b is None:
+                bx_b, by_b = hL[0] - 0.5, hL[1] - 4.4
+            if trail:
+                tx_b, ty_b = trail
+                c.paint_fx(c.capsule((bx_b + tx_b * 0.45, by_b + ty_b * 0.45), (bx_b + tx_b, by_b + ty_b), 1.2), "steam")
+                c.paint_fx(c.capsule((bx_b + tx_b * 0.5 + 2.2, by_b + ty_b * 0.5 - 2.2),
+                                     (bx_b + tx_b * 0.9 + 2.2, by_b + ty_b * 0.9 - 2.2), 0.7), "steam")
+            if hit:
+                for ang_h in (20, 95, 160, 235, 300):
+                    rad_h = math.radians(ang_h)
+                    c.paint_fx(c.capsule((bx_b + math.cos(rad_h) * 5.0, by_b + math.sin(rad_h) * 5.0),
+                                         (bx_b + math.cos(rad_h) * 8.2, by_b + math.sin(rad_h) * 8.2), 0.9), "star")
+            c.paint(c.ellipse(T(0, 0), bx_b, by_b, 3.3, 3.3), "red_ink", 72, sep="line")
+            c.paint(c.ellipse(T(0, 0), bx_b - 1.0, by_b - 1.2, 1.0, 1.0), "head_hi", 72)
+
         # (E) #16 / #20 / #24 MARSILAINEN 流體彩墨水花（無黑框，乾淨柔順水弧與粉紅水珠！）
         if p["paint_arc"] is not None:
             pcol_key, prog = p["paint_arc"]
@@ -925,6 +944,28 @@ def anim_bat(t):
                 bat=(ang, splash), two_hands=True, tent_wind=wind, eyes=eyes)
 
 
+def anim_batball(t):
+    """打棒球：左手握著紅球 → 往上拋 → 雙手揮棒擊中 → 球飛出去。第 3 格擊中，第 4 格球撞上畫面。"""
+    idx = int(round(t * FRAMES)) % FRAMES
+    cx = DESIGN_MV["cx"]
+    table = [  # 傾斜, 握棒位置, 球棒角度, 左手位置（None = 握在球棒上）, 紅球, 右腳, 眼睛
+        ( 0, (cx + 13, 56),  -80, (cx - 17, 62), (None, None, None, False),        (0, 0),  "chill"),
+        ( 0, (cx + 13, 55),  -78, (cx - 17, 54), (cx - 17.5, 42.0, (0, 6), False), (0, 0),  "lookL"),
+        ( 5, (cx + 16, 50),  -46, None,          (cx - 18.0, 32.0, None, False),   (-2, 5), "squint"),
+        (-3, (cx - 10, 56),  190, None,          (cx - 30.0, 51.0, None, True),    (4, 6),  "wide"),
+        (-6, (cx - 12, 52),  235, None,          (cx - 39.0, 29.0, (8, 6), False), (5, 8),  "wide"),
+        (-5, (cx - 9, 50),   262, None,          None,                             (4, 4),  "chill"),
+        (-1, (cx + 8, 60),  -112, None,          None,                             (1, 1),  "chill"),
+        ( 0, (cx + 13, 57),  -86, (cx - 16, 64), (None, None, None, False),        (0, 0),  "chill"),
+    ]
+    lean, grip, ang, left, ball, legR, eyes = table[idx]
+    ar = math.radians(ang)
+    if left is None:                                   # 左手握在右手下面的握把上
+        left = (grip[0] - math.cos(ar) * 4.0, grip[1] - math.sin(ar) * 4.0)
+    return dict(lean=lean, armR=arm_to(1, grip), armL=arm_to(-1, left), legR=legR,
+                bat=(ang, 0), ball=ball, two_hands=True, eyes=eyes)
+
+
 def _wave(t, eyes):
     idx = int(round(t * FRAMES)) % FRAMES
     swing = [34, 52, 70, 52, 34, 52, 70, 52][idx]          # 前臂來回揮兩次
@@ -1125,6 +1166,7 @@ def anim_flare(t):
 ANIMS = [
     ("idle",    "01 待機呼吸",       anim_idle,    165),
     ("bat",     "02 雙手球棒擊破",   anim_bat,     110),
+    ("batball", "02b 打棒球（預覽）", anim_batball, 110),
     ("wave",    "03 揮手",           anim_wave,    120),
     ("wavejoy", "04 開心揮手",       anim_wavejoy, 120),
 ]
