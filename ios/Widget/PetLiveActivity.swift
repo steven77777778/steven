@@ -3,7 +3,7 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-private func petImage(_ name: String) -> some View {
+private func petSprite(_ name: String) -> some View {
     bmp(name)
         .resizable()
         .interpolation(.none)
@@ -13,46 +13,45 @@ private func petImage(_ name: String) -> some View {
 struct PetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PetActivityAttributes.self) { context in
-            // 鎖定畫面上的樣子
-            HStack(spacing: 16) {
-                petImage(context.state.waving ? "pet-wave-2" : "pet-idle-0")
-                    .frame(height: 120)
-                Text(context.state.waving ? "やあ！" : "火星人")
-                    .font(.title3.bold())
-                    .foregroundStyle(.white)
+            // 鎖定畫面橫幅：純淨無文字干擾，只放火星人角色與極簡觸發鈕
+            HStack {
+                Spacer()
+                petSprite(context.state.waving ? "pet-pingpong-2" : "pet-idle-3")
+                    .frame(height: 94)
                 Spacer()
                 Button(intent: WaveLiveActivityIntent()) {
-                    Text("招手")
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(10)
                 }
-                .tint(.red)
+                .tint(Color(red: 0.85, green: 0.26, blue: 0.29))
             }
-            .padding()
-            .activityBackgroundTint(.black)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .activityBackgroundTint(Color(red: 0.08, green: 0.09, blue: 0.15).opacity(0.86))
             .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             DynamicIsland {
-                // 長按靈動島展開後的樣子
-                DynamicIslandExpandedRegion(.leading) {
-                    petImage(context.state.waving ? "pet-wave-2" : "pet-idle-0")
-                        .frame(height: 110)
-                }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.waving ? "やあ！" : "火星人")
-                        .font(.headline)
+                    petSprite(context.state.waving ? "pet-pingpong-2" : "pet-idle-0")
+                        .frame(height: 92)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Button(intent: WaveLiveActivityIntent()) {
-                        Text("招手")
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .semibold))
                     }
-                    .tint(.red)
+                    .tint(Color(red: 0.85, green: 0.26, blue: 0.29))
                 }
             } compactLeading: {
-                petImage("pet-head")
+                petSprite(context.state.waving ? "pet-head-happy" : "pet-head")
                     .frame(height: 22)
             } compactTrailing: {
-                Text(context.state.waving ? "👋" : "")
+                Circle()
+                    .fill(Color(red: 0.92, green: 0.36, blue: 0.39))
+                    .frame(width: 7, height: 7)
             } minimal: {
-                petImage("pet-head")
+                petSprite(context.state.waving ? "pet-head-happy" : "pet-head")
                     .frame(height: 20)
             }
         }

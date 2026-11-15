@@ -1,86 +1,22 @@
 {
+  "frame_width": 96,
+  "frame_height": 108,
   "frames": 8,
-  "designs": {
-    "A": {
-      "frame_width": 44,
-      "frame_height": 54,
-      "note": "44×54 像素 · 純色 · 深色外框",
-      "animations": {
-        "idle": {
-          "file": "A/idle.png",
-          "frame_ms": 140
-        },
-        "wave": {
-          "file": "A/wave.png",
-          "frame_ms": 110
-        },
-        "dance": {
-          "file": "A/dance.png",
-          "frame_ms": 130
-        },
-        "walk": {
-          "file": "A/walk.png",
-          "frame_ms": 100
-        },
-        "jump": {
-          "file": "A/jump.png",
-          "frame_ms": 100
-        }
-      }
+  "animations": {
+    "idle": {
+      "label": "01 待機呼吸 (#64/#80)",
+      "file": "MV/idle.png",
+      "frame_ms": 165
     },
-    "B": {
-      "frame_width": 66,
-      "frame_height": 81,
-      "note": "66×81 像素 · 有明暗 · 帶色外框 · 7 條觸手",
-      "animations": {
-        "idle": {
-          "file": "B/idle.png",
-          "frame_ms": 140
-        },
-        "wave": {
-          "file": "B/wave.png",
-          "frame_ms": 110
-        },
-        "dance": {
-          "file": "B/dance.png",
-          "frame_ms": 130
-        },
-        "walk": {
-          "file": "B/walk.png",
-          "frame_ms": 100
-        },
-        "jump": {
-          "file": "B/jump.png",
-          "frame_ms": 100
-        }
-      }
+    "bat": {
+      "label": "02 球棒擊破 (#01/#59)",
+      "file": "MV/bat.png",
+      "frame_ms": 110
     },
-    "C": {
-      "frame_width": 44,
-      "frame_height": 44,
-      "note": "44×44 像素 · 大頭小身體",
-      "animations": {
-        "idle": {
-          "file": "C/idle.png",
-          "frame_ms": 140
-        },
-        "wave": {
-          "file": "C/wave.png",
-          "frame_ms": 110
-        },
-        "dance": {
-          "file": "C/dance.png",
-          "frame_ms": 130
-        },
-        "walk": {
-          "file": "C/walk.png",
-          "frame_ms": 100
-        },
-        "jump": {
-          "file": "C/jump.png",
-          "frame_ms": 100
-        }
-      }
+    "pingpong": {
+      "label": "03 打乒乓球 (#51-#52)",
+      "file": "MV/pingpong.png",
+      "frame_ms": 115
     }
   }
 }
