@@ -4,7 +4,7 @@ import SwiftUI
 import WidgetKit
 
 private func petImage(_ name: String) -> some View {
-    Image(name)
+    bmp(name)
         .resizable()
         .interpolation(.none)
         .scaledToFit()

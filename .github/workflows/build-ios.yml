@@ -13,6 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check BMP images decode with transparency
+        run: swift ios/verify_bmp.swift ios/Shared/Sprites
+
       - name: Generate Xcode project
         working-directory: ios
         run: |

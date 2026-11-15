@@ -4,9 +4,9 @@
 用法：python3 pixel/export_ios.py   →  寫入 ios/Shared/Assets.xcassets/
 """
 import glob
-import json
 import os
 import shutil
+import struct
 
 import numpy as np
 from PIL import Image
@@ -16,17 +16,31 @@ import generate as g
 DESIGN = g.VARIANTS["A7"]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "ios", "Shared", "Assets.xcassets")
+SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")      # app 與小工具共用的 BMP 圖片
 
 
 def save(name, img):
-    d = os.path.join(ASSETS, f"{name}.imageset")
-    os.makedirs(d, exist_ok=True)
-    img.save(os.path.join(d, f"{name}.png"))
-    json.dump({"images": [{"idiom": "universal", "filename": f"{name}.png"}],
-               "info": {"author": "xcode", "version": 1}}, open(os.path.join(d, "Contents.json"), "w"), indent=2)
+    """存成 32 位元、無壓縮、帶 Alpha 遮罩的 BMP（BITMAPV4HEADER），透明背景會保留。"""
+    os.makedirs(SPRITES, exist_ok=True)
+    img = img.convert("RGBA")
+    w, h = img.size
+    px = img.tobytes("raw", "BGRA")
+    data = b"".join(px[y * w * 4:(y + 1) * w * 4] for y in reversed(range(h)))      # BMP 由下往上存
+    hdr = struct.pack("<IiiHHIIiiII", 108, w, h, 1, 32, 3, len(data), 2835, 2835, 0, 0)
+    hdr += struct.pack("<IIII", 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)     # R G B A 遮罩
+    hdr += b"BGRs" + bytes(48)
+    with open(os.path.join(SPRITES, f"{name}.bmp"), "wb") as f:
+        f.write(b"BM" + struct.pack("<IHHI", 122 + len(data), 0, 0, 122) + hdr + data)
 
 
 def main():
+    for old in glob.glob(os.path.join(SPRITES, "pet-*.bmp")):
+        os.remove(old)
+    # 舊版放在圖片目錄裡的 PNG：桌布底圖轉成 BMP 後移除，火星人的 PNG 直接移除
+    for old in glob.glob(os.path.join(ASSETS, "bg-*.imageset")):
+        name = os.path.basename(old)[:-len(".imageset")]
+        save(name, Image.open(os.path.join(old, f"{name}.png")))
+        shutil.rmtree(old)
     for old in glob.glob(os.path.join(ASSETS, "pet-*.imageset")):
         shutil.rmtree(old)
     for name, _, fn, _ in g.ANIMS:
@@ -57,7 +71,7 @@ def main():
     comp.save(os.path.join(ROOT, "pixel", "out", "layers-check.png"))
     # 靈動島用的頭部特寫
     save("pet-head", g.to_image(g.render(DESIGN, {})).crop((12, 8, 32, 27)))
-    print("exported", len(glob.glob(os.path.join(ASSETS, "pet-*.imageset"))), "images")
+    print("exported", len(glob.glob(os.path.join(SPRITES, "*.bmp"))), "bmp files")
 
 
 if __name__ == "__main__":

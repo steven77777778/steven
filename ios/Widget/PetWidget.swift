@@ -153,7 +153,7 @@ struct PetWidgetView: View {
         if entry.slot == .none {
             Color.clear
         } else {
-            Image("bg-\(entry.slot.rawValue)")
+            bmp("bg-\(entry.slot.rawValue)")
                 .resizable()
                 .scaledToFill()
         }
@@ -170,7 +170,7 @@ struct PuppetView: View {
     }
 
     private func layer(_ name: String) -> some View {
-        Image("pet-part-\(name)")
+        bmp("pet-part-\(name)")
             .resizable()
             .interpolation(.none)
     }

@@ -22,7 +22,7 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            Image(actionFrame ?? "pet-idle-\(idleFrame)")
+            bmp(actionFrame ?? "pet-idle-\(idleFrame)")
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
@@ -40,7 +40,7 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
-                Text("版本 16")
+                Text("版本 17")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.4))
                 Text(message)

@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 import generate as g
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS = os.path.join(ROOT, "ios", "Shared", "Assets.xcassets")
+SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")
 K = 8                                   # 放大倍率（小工具上大約也是這個比例）
 
 # 與 ios/Widget/PetWidget.swift 的姿勢一致。角度：度，正的是順時針。
@@ -27,7 +27,7 @@ POSES = {
 
 
 def layer(name):
-    im = Image.open(os.path.join(ASSETS, f"pet-part-{name}.imageset", f"pet-part-{name}.png")).convert("RGBA")
+    im = Image.open(os.path.join(SPRITES, f"pet-part-{name}.bmp")).convert("RGBA")
     return im.resize((im.width * K, im.height * K), Image.NEAREST)
 
 
