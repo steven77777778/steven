@@ -928,7 +928,8 @@ def anim_bat(t):
 def _wave(t, eyes):
     idx = int(round(t * FRAMES)) % FRAMES
     swing = [34, 52, 70, 52, 34, 52, 70, 52][idx]          # 前臂來回揮兩次
-    return dict(armR=(112, swing, True), openPalmR=True, tilt=3, bob=-1 if idx in (2, 6) else 0,
+    return dict(armR=(112, swing, True), tilt=3,              # 手掌維持圓圓的一顆，不畫手指
+                bob=-1 if idx in (2, 6) else 0,
                 lean=1.5 if idx in (1, 2, 5, 6) else 0, sway=2 * math.pi * t, sway_amp=3.0, eyes=eyes)
 
 
