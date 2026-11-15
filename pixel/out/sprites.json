@@ -4,19 +4,24 @@
   "frames": 8,
   "animations": {
     "idle": {
-      "label": "01 待機呼吸 (#64/#80)",
+      "label": "01 待機呼吸",
       "file": "MV/idle.png",
       "frame_ms": 165
     },
     "bat": {
-      "label": "02 球棒擊破 (#01/#59)",
+      "label": "02 雙手球棒擊破",
       "file": "MV/bat.png",
       "frame_ms": 110
     },
-    "pingpong": {
-      "label": "03 打乒乓球 (#51-#52)",
-      "file": "MV/pingpong.png",
-      "frame_ms": 115
+    "wave": {
+      "label": "03 揮手",
+      "file": "MV/wave.png",
+      "frame_ms": 120
+    },
+    "wavejoy": {
+      "label": "04 開心揮手",
+      "file": "MV/wavejoy.png",
+      "frame_ms": 120
     }
   }
 }

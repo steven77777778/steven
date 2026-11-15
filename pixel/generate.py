@@ -130,6 +130,13 @@ EYES = {
         "wwkkkww",
         ".wwwww.",
     ],
+    "joy": [                      # 開心時瞇成像括號的弧形 ︵ ︵
+        ".......",
+        ".kkkkk.",
+        "k.....k",
+        ".......",
+        ".......",
+    ],
     "glasses": [
         ".kkkkk.",
         "kkkkkkk",
@@ -308,12 +315,13 @@ REST = dict(
     eyes="chill",
     shirt="sweater",
     fez=False,
-    armL=(6, 4, False), armR=(6, 4, False),
+    armL=(4, 0, False), armR=(4, 0, False),   # 垂著時整隻手是一直線，不彎手肘
     legL=(0, 0), legR=(0, 0),
     peaceR=False, threeFingerR=False, openPalmR=False, pointAtYou=False, pointLeft=False, sparkle=0,
     bubble=0.0,                     # #08-#11 側身吹紅氣球進度
     cup_mouth=False,                # #08 側身雙手捧嘴
     bat=None,
+    two_hands=False,                # 雙手握棒：前臂橫過身體時要描邊，兩隻手掌畫在球棒上
     paint_arc=None,
     red_bar=None,
     piano=None,
@@ -539,6 +547,8 @@ def render(d=DESIGN_MV, pose=None, only=None):
                 c.col[ring] = c.idx["line"]
                 inner_sh = dilate(upper) & ~upper & (c.part == 4) & (c.py > s0[1] + 3.0)
                 c.col[inner_sh] = c.idx[shirt_sh]
+                if p["two_hands"]:      # 前臂橫在同色的上衣前面時，描一圈邊才看得出手臂
+                    c.col[dilate(fore) & ~full_arm & (c.part == 4)] = c.idx["line"]
             else:
                 crease = dilate(full_arm) & ~full_arm & (c.part == 4) & (c.py > s0[1] + 4.0)
                 c.col[crease] = c.idx["line"]
@@ -683,12 +693,15 @@ def render(d=DESIGN_MV, pose=None, only=None):
             ar = math.radians(bat_ang)
             tip = (hR[0] + math.cos(ar) * 19.0, hR[1] + math.sin(ar) * 19.0)
             mid = (hR[0] + math.cos(ar) * 8.5, hR[1] + math.sin(ar) * 8.5)
-            knob = (hR[0] - math.cos(ar) * 2.2, hR[1] - math.sin(ar) * 2.2)
+            knob = (hR[0] - math.cos(ar) * 6.0, hR[1] - math.sin(ar) * 6.0)     # 握把留給下面那隻手
             c.paint(c.capsule(knob, knob, 1.7), "wood_sh", 66)
-            c.paint(c.capsule(hR, mid, 1.35), "wood_sh", 66)
+            c.paint(c.capsule(knob, mid, 1.35), "wood_sh", 66)
             c.paint(c.capsule(mid, tip, 2.35), "wood", 66)
+            if p["two_hands"]:          # 兩隻手掌握在握把上
+                for hand_pt in (hL, hR):
+                    c.paint(c.capsule(hand_pt, hand_pt, d["hand"]), "skin", 67, sep="line")
             if splash > 0:
-                sx_c, sy_c = cx + 27.0, 86.0      # 紅墨在球棒掃到的右下方爆開
+                sx_c, sy_c = cx - 22.0, 75.0      # 紅墨在球棒砸到的左下方爆開
                 if splash == 1:
                     c.paint_fx(c.ellipse(T(0, 0), sx_c, sy_c, 5.2, 5.2), "red_ink")
                 for ang_d, dist, rr in ((-42, 9.0 * splash * 0.68, 1.9), (12, 10.5 * splash * 0.68, 2.1),
@@ -878,21 +891,55 @@ def anim_idle(t):
     return dict(dy=dy, bob=bob, tent_lag=lag, sway=2 * math.pi * t, sway_amp=2.5, eyes=eyes)
 
 
+def arm_to(side, target, bend=1, d=DESIGN_MV):
+    """算出讓手掌剛好碰到 target（畫布座標）的手臂角度。side：-1 左手、1 右手；bend：手肘往哪一側彎。"""
+    sx, sy = d["shoulder"]
+    L1, L2 = d["arm"][0], d["arm"][1] + 2.0
+    ux, uy = side * (target[0] - (d["cx"] + side * sx)), target[1] - sy
+    full = math.hypot(ux, uy)
+    dist = max(abs(L1 - L2) + 0.01, min(L1 + L2 - 0.01, full))
+    ux, uy = ux * dist / full, uy * dist / full
+    a1 = math.atan2(ux, uy) + bend * math.acos((L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist))
+    a12 = math.atan2(ux - L1 * math.sin(a1), uy - L1 * math.cos(a1))
+    return (math.degrees(a1), math.degrees(a12 - a1), True)
+
+
 def anim_bat(t):
+    """雙手持球棒：棒子舉在右肩 → 往後拉 → 斜斜往左下砸 → 收回。第 3 格是擊中的瞬間（玻璃碎裂）。"""
     idx = int(round(t * FRAMES)) % FRAMES
-    table = [
-        (-4, (32, 58, True),  (55,  50, True),  ( 0, 0), (-115, 0),  -6, "chill"),
-        (-7, (42, 68, True),  (82,  42, True),  (-2, 4), (-138, 0), -14, "chill"),
-        (-8, (48, 72, True),  (92,  38, True),  (-2, 7), (-148, 0), -18, "squint"),
-        # 揮擊的四格：手臂加長後，把手肘收一點、球棒朝右下掃，整支球棒才留在畫布內
-        ( 3, (40,-48, True),  (64, -34, True),  ( 5, 9), (  44, 1),  22, "wide"),
-        ( 4, (48,-62, True),  (70, -44, True),  ( 7,11), (  60, 2),  28, "wide"),
-        ( 3, (42,-52, True),  (70, -30, True),  ( 5, 5), (  62, 0),  16, "chill"),
-        ( 2, (24, 26, True),  (52,   6, True),  ( 2, 2), ( -62, 0),   4, "chill"),
-        ( 0, (10, 12, False), (30,  32, True),  ( 0, 0), ( -85, 0),   0, "chill"),
+    cx = DESIGN_MV["cx"]
+    table = [  # 身體傾斜, 握棒位置, 球棒角度, 紅墨, 右腳, 觸手被風帶動, 眼睛
+        ( 0, (cx + 14, 56), -82, 0, (0, 0),   0, "chill"),
+        ( 3, (cx + 16, 52), -64, 0, (-1, 2), -8, "chill"),
+        ( 6, (cx + 17, 49), -46, 0, (-2, 5), -14, "squint"),
+        (-5, (cx - 6, 66),  158, 1, (4, 6),  22, "wide"),
+        (-8, (cx - 8, 68),  172, 2, (5, 8),  26, "wide"),
+        (-5, (cx - 7, 67),  164, 0, (4, 4),  14, "chill"),
+        (-1, (cx + 8, 60), -112, 0, (1, 1),   4, "chill"),
+        ( 0, (cx + 13, 57), -86, 0, (0, 0),   0, "chill"),
     ]
-    lean, aL, aR, lR, bat, wind, eyes = table[idx]
-    return dict(lean=lean, armL=aL, armR=aR, legR=lR, bat=bat, tent_wind=wind, eyes=eyes)
+    lean, grip, ang, splash, legR, wind, eyes = table[idx]
+    ar = math.radians(ang)
+    lower = (grip[0] - math.cos(ar) * 4.0, grip[1] - math.sin(ar) * 4.0)      # 左手握在右手下面
+    return dict(lean=lean, armR=arm_to(1, grip), armL=arm_to(-1, lower), legR=legR,
+                bat=(ang, splash), two_hands=True, tent_wind=wind, eyes=eyes)
+
+
+def _wave(t, eyes):
+    idx = int(round(t * FRAMES)) % FRAMES
+    swing = [34, 52, 70, 52, 34, 52, 70, 52][idx]          # 前臂來回揮兩次
+    return dict(armR=(112, swing, True), openPalmR=True, tilt=3, bob=-1 if idx in (2, 6) else 0,
+                lean=1.5 if idx in (1, 2, 5, 6) else 0, sway=2 * math.pi * t, sway_amp=3.0, eyes=eyes)
+
+
+def anim_wave(t):
+    """揮手：右手舉起來張開手掌左右揮。"""
+    return _wave(t, "chill")
+
+
+def anim_wavejoy(t):
+    """開心揮手：同樣的揮手，眼睛瞇成括號般的弧形。"""
+    return _wave(t, "joy")
 
 
 def anim_bubble(t):
@@ -1073,11 +1120,12 @@ def anim_flare(t):
                 tent_lag=-1.4 if dy < -3 else 0.4, eyes=eyes)
 
 
-# 只保留待機、球棒、乒乓球三組；其餘九組動作已依需求移除（函式留著，之後要加回來只要補回這個清單）。
+# 目前使用的動作。其餘動作的函式還留在上面，之後要加回來只要補回這個清單。
 ANIMS = [
-    ("idle",     "01 待機呼吸 (#64/#80)", anim_idle,     165),
-    ("bat",      "02 球棒擊破 (#01/#59)", anim_bat,      110),
-    ("pingpong", "03 打乒乓球 (#51-#52)", anim_pingpong, 115),
+    ("idle",    "01 待機呼吸",       anim_idle,    165),
+    ("bat",     "02 雙手球棒擊破",   anim_bat,     110),
+    ("wave",    "03 揮手",           anim_wave,    120),
+    ("wavejoy", "04 開心揮手",       anim_wavejoy, 120),
 ]
 
 
