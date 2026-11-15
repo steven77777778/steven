@@ -31,6 +31,11 @@ def main():
             continue
         for i in range(g.FRAMES):
             save(f"pet-{name}-{i}", g.to_image(g.render(DESIGN, fn(i / g.FRAMES))))
+    # 小工具用的分層圖：身體、頭、左右手各一張，畫布大小相同，疊起來就是完整的火星人。
+    # 小工具裡由系統把各層旋轉、位移，動作才會平滑。
+    straight = dict(armL=(0, 0, False), armR=(0, 0, False))
+    for layer in g.LAYERS:
+        save(f"pet-part-{layer}", g.to_image(g.render(DESIGN, straight, only=layer)))
     # 靈動島用的頭部特寫
     save("pet-head", g.to_image(g.render(DESIGN, {})).crop((12, 8, 32, 27)))
     print("exported", len(glob.glob(os.path.join(ASSETS, "pet-*.imageset"))), "images")

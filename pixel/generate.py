@@ -50,6 +50,7 @@ class Canvas:
         self.w, self.h = w, h
         self.idx = {n: i + 1 for i, n in enumerate(names)}
         self.names = [None] + list(names)
+        self.allow = None                         # 只畫這些部位編號（None = 全部）
         self.col = np.zeros((h, w), int)
         self.part = np.zeros((h, w), int)
         ys, xs = np.mgrid[0:h, 0:w]
@@ -81,6 +82,8 @@ class Canvas:
     # --- 上色 ---
     def paint(self, mask, color, part, sep=None):
         """sep：這個部位蓋在別的部位上時，沿邊緣畫一圈分隔線的顏色。"""
+        if self.allow is not None and part not in self.allow:
+            return
         if sep is not None:
             ring = dilate(mask) & ~mask & (self.col > 0)
             self.col[ring] = self.idx[sep]
@@ -89,6 +92,8 @@ class Canvas:
 
     def stamp(self, rows, cx, cy, legend, part):
         """把固定的小圖案（例如眼睛）貼在最接近 (cx, cy) 的整數像素上。"""
+        if self.allow is not None and part not in self.allow:
+            return
         h, w = len(rows), len(rows[0])
         x0, y0 = int(round(cx - w / 2)), int(round(cy - h / 2))
         for j, row in enumerate(rows):
@@ -210,16 +215,21 @@ VARIANTS = {
 
 
 # ---------------------------------------------------------------- 姿勢 → 像素
+# 分層輸出用：每一層包含哪些部位編號
+LAYERS = {"body": {1, 2, 3, 4, 11, 12}, "armL": {5, 25}, "armR": {6, 26},
+          "head": set(range(30, 40)) | {50}}
+
 REST = dict(dy=0, lean=0, tilt=0, bob=0, squash=1.0, sway=0.0, sway_amp=5.0, flare=0.0, eyes="open",
             armL=(4, 0, False), armR=(4, 0, False), legL=(0, 0), legR=(0, 0))
 
 
-def render(d, pose):
-    """依姿勢參數畫出一格。回傳 Canvas。"""
+def render(d, pose, only=None):
+    """依姿勢參數畫出一格。回傳 Canvas。only：只畫指定的部位（見 LAYERS），用來輸出分層圖。"""
     ra = d.get("rest_arm", 4)
     p = dict(REST, armL=(ra, 0, False), armR=(ra, 0, False))
     p.update(pose)
     c = Canvas(d["W"], d["H"], list(PALETTE))
+    c.allow = LAYERS[only] if only else None
     cx, ground, u = d["cx"], d["ground"], d["u"]
     dy = round(p["dy"] * u)                      # 位移一律取整數像素，形狀才不會抖動
     body = T(0, dy) @ R(p["lean"], cx, ground) @ S(1, p["squash"], cx, ground)
@@ -255,8 +265,9 @@ def render(d, pose):
         w = (e[0] + side * L2 * math.sin(a), e[1] + L2 * math.cos(a))
         hnd = (e[0] + side * (L2 + 0.9 * u) * math.sin(a), e[1] + (L2 + 0.9 * u) * math.cos(a))
         s0, e, w, hnd = (pt(body, *q) for q in (s0, e, w, hnd))
-        c.paint(c.capsule(hnd, hnd, d["hand"]), "skin", part + 20, sep_of("skin"))
-        c.paint(c.capsule(s0, e, r) | c.capsule(e, w, r), "sweater", part, sep_of("sweater"))
+        c.paint(c.capsule(s0, e, r) | c.capsule(e, w, r) | c.capsule(hnd, hnd, d["hand"]), "sweater", part,
+                sep_of("sweater"))
+        c.paint(c.capsule(hnd, hnd, d["hand"]), "skin", part + 20)      # 手掌畫在袖口上，不被分隔線蓋掉
 
     for part, side, spec in ((5, -1, p["armL"]), (6, 1, p["armR"])):
         if not spec[2]:
