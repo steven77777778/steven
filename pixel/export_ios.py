@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把選定的造型（A7）輸出成 iOS app 用的圖片：每個動畫 8 格，全部是原生像素。
+"""把選定的造型（A7，身體和腿等長）輸出成 iOS app 用的圖片：每個動畫 8 格，全部是原生像素。
 
 用法：python3 pixel/export_ios.py   →  寫入 ios/Shared/Assets.xcassets/
 """
@@ -13,7 +13,7 @@ from PIL import Image
 
 import generate as g
 
-DESIGN = g.VARIANTS["A7"]
+DESIGN = g.A7B      # A7 的比例，身體和腿等長
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "ios", "Shared", "Assets.xcassets")
 SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")      # app 與小工具共用的 BMP 圖片

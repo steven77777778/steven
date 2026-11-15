@@ -182,7 +182,7 @@ struct PuppetView: View {
         return ZStack {
             layer("upper\(side)")
             layer("fore\(side)")
-                .rotationEffect(.degrees(fore), anchor: unit(x, 31.2))
+                .rotationEffect(.degrees(fore), anchor: unit(x, 31.9))
         }
         .rotationEffect(.degrees(upper), anchor: unit(x, 25.6))
         .opacity(raised == front ? 1 : 0)
@@ -201,7 +201,7 @@ struct PuppetView: View {
                     arm("L", upper: pose.armL, fore: pose.foreL, x: 16.5, front: true)
                     arm("R", upper: pose.armR, fore: pose.foreR, x: 27.5, front: true)
                 }
-                .rotationEffect(.degrees(pose.lean), anchor: unit(22, 37.2))
+                .rotationEffect(.degrees(pose.lean), anchor: unit(22, 39.7))
             }
             .offset(y: -pose.lift * geo.size.height)
         }

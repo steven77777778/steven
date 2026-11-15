@@ -47,7 +47,7 @@ def draw(pose):
     p = dict(REST, **pose)
 
     def arm(side, x, upper, fore):
-        return rot(over(layer(f"upper{side}"), rot(layer(f"fore{side}"), fore, x, 31.2)), upper, x, 25.6)
+        return rot(over(layer(f"upper{side}"), rot(layer(f"fore{side}"), fore, x, 31.9)), upper, x, 25.6)
 
     arms = {s: arm(s, x, p[f"arm{s}"], p[f"fore{s}"]) for s, x in (("L", 16.5), ("R", 27.5))}
     raised = {s: abs(p[f"arm{s}"]) > 45 or abs(p[f"fore{s}"]) > 45 for s in "LR"}
@@ -56,7 +56,7 @@ def draw(pose):
                       *(arms[s] if not raised[s] else empty for s in "LR"),     # 垂著的手在觸手後面
                       rot(layer("head"), p["head"], 22, 24),
                       *(arms[s] if raised[s] else empty for s in "LR"))         # 舉起來的手在頭前面
-    fig = over(layer("legs"), rot(upper_body, p["lean"], 22, 37.2))
+    fig = over(layer("legs"), rot(upper_body, p["lean"], 22, 39.7))
     out = Image.new("RGBA", fig.size)
     out.alpha_composite(fig, (0, 0))
     if p["lift"]:
