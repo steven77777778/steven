@@ -14,7 +14,7 @@ import generate as g
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SLOT = (620, 1447, 483)                 # 右下那一格在截圖上的位置與邊長（像素）
-CROP = (12, 14, 89, 105)                # 圖片裁掉四周空白後的範圍（和輸出到 app 的一致）
+CROP = (11, 14, 89, 105)                # 圖片裁掉四周空白後的範圍（和輸出到 app 的一致）
 IMPACT = (0.22, 0.65)                   # 球棒落點在小工具上的相對位置
 PX = SLOT[2] / 164.0                    # 截圖上每 1 pt 是幾個像素
 SS = 3                                  # 先畫大再縮小，線條才平滑

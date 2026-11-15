@@ -13,7 +13,7 @@ from PIL import Image
 import generate as g
 
 DESIGN = g.DESIGN_MV
-CROP = (12, 14, 89, 105)     # 每一格裁切的範圍（左、上、右、下），和 pixel/preview_glass.py 一致
+CROP = (11, 14, 89, 105)     # 每一格裁切的範圍（左、上、右、下），和 pixel/preview_glass.py 一致
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")
 
