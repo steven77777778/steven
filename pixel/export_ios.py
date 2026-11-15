@@ -20,29 +20,30 @@ SPRITES = os.path.join(ROOT, "ios", "Shared", "Sprites")      # app 與小工具
 
 
 def save(name, img):
-    """存成 32 位元、無壓縮、帶 Alpha 遮罩的 BMP（BITMAPV4HEADER），透明背景會保留。"""
+    """存成 32 位元、無壓縮、帶 Alpha 遮罩的 BMP，透明背景會保留。
+    檔頭用 BITMAPV5HEADER：在雲端 Mac 上實測過，Apple 的解碼器讀得出這種寫法的透明度（V4 檔頭它讀不了）。"""
     os.makedirs(SPRITES, exist_ok=True)
     img = img.convert("RGBA")
     w, h = img.size
     px = img.tobytes("raw", "BGRA")
     data = b"".join(px[y * w * 4:(y + 1) * w * 4] for y in reversed(range(h)))      # BMP 由下往上存
-    hdr = struct.pack("<IiiHHIIiiII", 108, w, h, 1, 32, 3, len(data), 2835, 2835, 0, 0)
-    hdr += struct.pack("<IIII", 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)     # R G B A 遮罩
-    hdr += b"BGRs" + bytes(48)
     with open(os.path.join(SPRITES, f"{name}.bmp"), "wb") as f:
-        f.write(b"BM" + struct.pack("<IHHI", 122 + len(data), 0, 0, 122) + hdr + data)
+        f.write(bmp_bytes(w, h, data))
+
+
+def bmp_bytes(w, h, data):
+    hdr = struct.pack("<IiiHHIIiiII", 124, w, h, 1, 32, 3, len(data), 2835, 2835, 0, 0)
+    hdr += struct.pack("<IIII", 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)     # R G B A 遮罩
+    hdr += b"BGRs" + bytes(48) + struct.pack("<IIII", 4, 0, 0, 0)                   # sRGB 色彩空間
+    return b"BM" + struct.pack("<IHHI", 138 + len(data), 0, 0, 138) + hdr + data
 
 
 def main():
     for old in glob.glob(os.path.join(SPRITES, "pet-*.bmp")):
         os.remove(old)
-    # 舊版放在圖片目錄裡的 PNG：桌布底圖轉成 BMP 後移除，火星人的 PNG 直接移除
-    for old in glob.glob(os.path.join(ASSETS, "bg-*.imageset")):
-        name = os.path.basename(old)[:-len(".imageset")]
-        save(name, Image.open(os.path.join(old, f"{name}.png")))
-        shutil.rmtree(old)
-    for old in glob.glob(os.path.join(ASSETS, "pet-*.imageset")):
-        shutil.rmtree(old)
+    # 桌布底圖：照同一種檔頭重寫一次（像素不變）
+    for path in glob.glob(os.path.join(SPRITES, "bg-*.bmp")):
+        save(os.path.basename(path)[:-4], Image.open(path))
     for name, _, fn, _ in g.ANIMS:
         if name == "walk":                    # 走路這個動作 app 裡不用
             continue
