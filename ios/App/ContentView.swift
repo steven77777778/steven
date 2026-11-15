@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 點一下會輪流播放的動作（圖片名稱是 pet-<動作>-<第幾格>，每個動作 8 格）
 let petActions: [(name: String, frameMs: UInt64, loops: Int)] = [
-    ("wave", 110, 2), ("dance", 130, 2), ("walk", 100, 3), ("jump", 100, 2)
+    ("wave", 110, 2), ("dance", 130, 2), ("jump", 100, 2)
 ]
 
 struct ContentView: View {
@@ -40,7 +40,7 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
-                Text("版本 10")
+                Text("版本 11")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.4))
                 Text(message)

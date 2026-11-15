@@ -4,8 +4,9 @@ import WidgetKit
 
 private let waveUntilKey = "waveUntil"
 private let actionKey = "action"   // 這次要播第幾個動作（每點一次換下一個）
-private let actions = ["wave", "dance", "walk", "jump"]
-private let actionSeconds = 2.4
+private let actions = ["wave", "dance", "jump"]
+private let frameSeconds = 0.15            // 每一格停留的時間，越小動作越快
+private let actionSeconds = frameSeconds * 16   // 一個動作 8 格，連播兩輪
 
 /// 點桌面小工具時執行：記下「招手到什麼時候」，系統會接著重新載入小工具
 struct WaveWidgetIntent: AppIntent {
@@ -65,13 +66,13 @@ struct PetProvider: AppIntentTimelineProvider {
         let until = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: waveUntilKey))
         var entries: [PetEntry] = []
         if now < until {
-            // 動作期間每 0.3 秒換一格（一個動作 8 格），結束後回到站立
+            // 動作期間每隔 frameSeconds 換一格，結束後回到站立
             let action = actions[UserDefaults.standard.integer(forKey: actionKey) % actions.count]
             var t = now
             var i = 0
             while t < until {
                 entries.append(PetEntry(date: t, frame: "pet-\(action)-\(i % 8)", slot: slot))
-                t = t.addingTimeInterval(actionSeconds / 8)
+                t = t.addingTimeInterval(frameSeconds)
                 i += 1
             }
             entries.append(PetEntry(date: until, frame: "pet-idle-0", slot: slot))

@@ -27,6 +27,8 @@ def main():
     for old in glob.glob(os.path.join(ASSETS, "pet-*.imageset")):
         shutil.rmtree(old)
     for name, _, fn, _ in g.ANIMS:
+        if name == "walk":                    # 走路這個動作 app 裡不用
+            continue
         for i in range(g.FRAMES):
             save(f"pet-{name}-{i}", g.to_image(g.render(DESIGN, fn(i / g.FRAMES))))
     # 靈動島用的頭部特寫
