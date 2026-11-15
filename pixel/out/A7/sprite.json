@@ -1,0 +1,68 @@
+{
+  "frame_width": 44,
+  "frame_height": 54,
+  "frames_per_animation": 8,
+  "animations": {
+    "idle": {
+      "sheet": "idle.png",
+      "frame_ms": 140
+    },
+    "wave": {
+      "sheet": "wave.png",
+      "frame_ms": 110
+    },
+    "dance": {
+      "sheet": "dance.png",
+      "frame_ms": 130
+    },
+    "walk": {
+      "sheet": "walk.png",
+      "frame_ms": 100
+    },
+    "jump": {
+      "sheet": "jump.png",
+      "frame_ms": 100
+    }
+  },
+  "layers": {
+    "order_back_to_front": [
+      "legs",
+      "torso",
+      "upperL",
+      "foreL",
+      "upperR",
+      "foreR",
+      "head"
+    ],
+    "pivots_px": {
+      "shoulderL": [
+        16.5,
+        25.6
+      ],
+      "shoulderR": [
+        27.5,
+        25.6
+      ],
+      "elbowL": [
+        16.5,
+        31.2
+      ],
+      "elbowR": [
+        27.5,
+        31.2
+      ],
+      "neck": [
+        22,
+        24
+      ],
+      "waist": [
+        22,
+        37.2
+      ],
+      "feet": [
+        22,
+        51.5
+      ]
+    }
+  }
+}
