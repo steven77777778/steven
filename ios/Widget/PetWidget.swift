@@ -3,7 +3,9 @@ import SwiftUI
 import WidgetKit
 
 private let waveUntilKey = "waveUntil"
-private let danceKey = "dance"   // 這次的動作是不是跳舞（每點一次在招手和跳舞之間輪流）
+private let actionKey = "action"   // 這次要播第幾個動作（每點一次換下一個）
+private let actions = ["wave", "dance", "walk", "jump"]
+private let actionSeconds = 2.4
 
 /// 點桌面小工具時執行：記下「招手到什麼時候」，系統會接著重新載入小工具
 struct WaveWidgetIntent: AppIntent {
@@ -11,8 +13,8 @@ struct WaveWidgetIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         let defaults = UserDefaults.standard
-        defaults.set(!defaults.bool(forKey: danceKey), forKey: danceKey)
-        defaults.set(Date().addingTimeInterval(2.4).timeIntervalSince1970, forKey: waveUntilKey)
+        defaults.set((defaults.integer(forKey: actionKey) + 1) % actions.count, forKey: actionKey)
+        defaults.set(Date().addingTimeInterval(actionSeconds).timeIntervalSince1970, forKey: waveUntilKey)
         return .result()
     }
 }
@@ -50,11 +52,11 @@ struct PetEntry: TimelineEntry {
 
 struct PetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> PetEntry {
-        PetEntry(date: Date(), frame: "pet-idle", slot: .none)
+        PetEntry(date: Date(), frame: "pet-idle-0", slot: .none)
     }
 
     func snapshot(for configuration: PetWidgetConfig, in context: Context) async -> PetEntry {
-        PetEntry(date: Date(), frame: "pet-idle", slot: configuration.slot)
+        PetEntry(date: Date(), frame: "pet-idle-0", slot: configuration.slot)
     }
 
     func timeline(for configuration: PetWidgetConfig, in context: Context) async -> Timeline<PetEntry> {
@@ -63,20 +65,18 @@ struct PetProvider: AppIntentTimelineProvider {
         let until = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: waveUntilKey))
         var entries: [PetEntry] = []
         if now < until {
-            // 動作期間每 0.4 秒換一個姿勢，結束後回到站立
-            let frames = UserDefaults.standard.bool(forKey: danceKey)
-                ? ["pet-dance1", "pet-dance2"]
-                : ["pet-wave1", "pet-wave2", "pet-wave3"]
+            // 動作期間每 0.3 秒換一格（一個動作 8 格），結束後回到站立
+            let action = actions[UserDefaults.standard.integer(forKey: actionKey) % actions.count]
             var t = now
             var i = 0
             while t < until {
-                entries.append(PetEntry(date: t, frame: frames[i % frames.count], slot: slot))
-                t = t.addingTimeInterval(0.4)
+                entries.append(PetEntry(date: t, frame: "pet-\(action)-\(i % 8)", slot: slot))
+                t = t.addingTimeInterval(actionSeconds / 8)
                 i += 1
             }
-            entries.append(PetEntry(date: until, frame: "pet-idle", slot: slot))
+            entries.append(PetEntry(date: until, frame: "pet-idle-0", slot: slot))
         } else {
-            entries.append(PetEntry(date: now, frame: "pet-idle", slot: slot))
+            entries.append(PetEntry(date: now, frame: "pet-idle-0", slot: slot))
         }
         return Timeline(entries: entries, policy: .never)
     }
@@ -94,7 +94,7 @@ struct PetWidgetView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-                    .padding(14)
+                    .padding(4)   // 圖片本身四周已留白，供動作伸展
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -121,7 +121,7 @@ struct PetWidget: Widget {
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人")
-        .description("點一下，他會招手或跳舞。")
+        .description("點一下，他會做一個動作。")
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()   // 讓底圖鋪滿整個小工具
     }

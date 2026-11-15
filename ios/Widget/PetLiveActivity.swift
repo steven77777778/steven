@@ -15,7 +15,7 @@ struct PetLiveActivity: Widget {
         ActivityConfiguration(for: PetActivityAttributes.self) { context in
             // 鎖定畫面上的樣子
             HStack(spacing: 16) {
-                petImage(context.state.waving ? "pet-wave1" : "pet-idle")
+                petImage(context.state.waving ? "pet-wave-2" : "pet-idle-0")
                     .frame(height: 120)
                 Text(context.state.waving ? "やあ！" : "火星人")
                     .font(.title3.bold())
@@ -33,7 +33,7 @@ struct PetLiveActivity: Widget {
             DynamicIsland {
                 // 長按靈動島展開後的樣子
                 DynamicIslandExpandedRegion(.leading) {
-                    petImage(context.state.waving ? "pet-wave1" : "pet-idle")
+                    petImage(context.state.waving ? "pet-wave-2" : "pet-idle-0")
                         .frame(height: 110)
                 }
                 DynamicIslandExpandedRegion(.center) {

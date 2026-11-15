@@ -1,36 +1,34 @@
 import ActivityKit
 import SwiftUI
 
+/// 點一下會輪流播放的動作（圖片名稱是 pet-<動作>-<第幾格>，每個動作 8 格）
+let petActions: [(name: String, frameMs: UInt64, loops: Int)] = [
+    ("wave", 110, 2), ("dance", 130, 2), ("walk", 100, 3), ("jump", 100, 2)
+]
+
 struct ContentView: View {
-    @State private var up = false
-    @State private var blink = false
+    @State private var idleFrame = 0
     @State private var actionFrame: String?   // 正在做動作時的圖片名稱，沒在動作時是 nil
-    @State private var danceNext = false      // 每點一次在招手和跳舞之間輪流
-    @State private var waveTask: Task<Void, Never>?
+    @State private var nextAction = 0         // 下一次點擊要播哪個動作
+    @State private var actionTask: Task<Void, Never>?
     @State private var position = CGSize.zero
     @State private var dragStart = CGSize.zero
     @State private var islandOn = false
-    @State private var message = "點一下火星人，他會招手或跳舞"
+    @State private var message = "點一下火星人，每次會做一個不同的動作"
 
-    private let bobTimer = Timer.publish(every: 0.65, on: .main, in: .common).autoconnect()
-    private let blinkTimer = Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()
-
-    private var frameName: String {
-        if let actionFrame { return actionFrame }
-        return blink ? "pet-blink" : "pet-idle"
-    }
+    private let idleTimer = Timer.publish(every: 0.14, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            Image(frameName)
+            Image(actionFrame ?? "pet-idle-\(idleFrame)")
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(height: 420)
-                .offset(x: position.width, y: position.height + (up ? -4 : 0))
-                .onTapGesture { wave() }
+                .frame(height: 460)
+                .offset(x: position.width, y: position.height)
+                .onTapGesture { playNextAction() }
                 .gesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { g in
@@ -42,7 +40,7 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
-                Text("版本 9")
+                Text("版本 10")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.4))
                 Text(message)
@@ -57,32 +55,20 @@ struct ContentView: View {
             }
             .padding()
         }
-        .onReceive(bobTimer) { _ in up.toggle() }
-        .onReceive(blinkTimer) { _ in
-            blink = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { blink = false }
-        }
+        .onReceive(idleTimer) { _ in idleFrame = (idleFrame + 1) % 8 }
         .onAppear { islandOn = !Activity<PetActivityAttributes>.activities.isEmpty }
     }
 
-    /// 招手或跳舞約兩秒
-    private func wave() {
-        waveTask?.cancel()
-        let dance = danceNext
-        danceNext.toggle()
-        waveTask = Task { @MainActor in
-            if dance {
-                for i in 0..<6 {
-                    actionFrame = "pet-dance\(i % 2 + 1)"
-                    try? await Task.sleep(nanoseconds: 380_000_000)
-                    if Task.isCancelled { return }
-                }
-            } else {
-                for i in 0..<13 {
-                    actionFrame = "pet-wave\(i % 3 + 1)"
-                    try? await Task.sleep(nanoseconds: 170_000_000)
-                    if Task.isCancelled { return }
-                }
+    /// 播放下一個動作，播完回到待機
+    private func playNextAction() {
+        let action = petActions[nextAction % petActions.count]
+        nextAction += 1
+        actionTask?.cancel()
+        actionTask = Task { @MainActor in
+            for i in 0..<(8 * action.loops) {
+                actionFrame = "pet-\(action.name)-\(i % 8)"
+                try? await Task.sleep(nanoseconds: action.frameMs * 1_000_000)
+                if Task.isCancelled { return }
             }
             actionFrame = nil
         }
@@ -90,7 +76,7 @@ struct ContentView: View {
 
     private func startIsland() {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            message = "請到「設定 → 火星人」打開「即時動態」"
+            message = "請到「設定」裡這個 app 的頁面打開「即時動態」"
             return
         }
         do {
@@ -112,7 +98,7 @@ struct ContentView: View {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
             islandOn = false
-            message = "點一下火星人，他會向你招手"
+            message = "點一下火星人，每次會做一個不同的動作"
         }
     }
 }
