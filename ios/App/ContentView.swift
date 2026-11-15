@@ -40,7 +40,7 @@ struct ContentView: View {
 
             VStack(spacing: 12) {
                 Spacer()
-                Text("版本 11")
+                Text("版本 12")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.4))
                 Text(message)

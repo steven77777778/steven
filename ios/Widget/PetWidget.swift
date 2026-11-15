@@ -4,9 +4,15 @@ import WidgetKit
 
 private let waveUntilKey = "waveUntil"
 private let actionKey = "action"   // 這次要播第幾個動作（每點一次換下一個）
-private let actions = ["wave", "dance", "jump"]
-private let frameSeconds = 0.15            // 每一格停留的時間，越小動作越快
-private let actionSeconds = frameSeconds * 16   // 一個動作 8 格，連播兩輪
+// 小工具換圖太頻繁會被系統跳過，所以每個動作只挑 4 個關鍵姿勢，
+// 用系統跟得上的間隔播放：每一步的肢體變化大，看起來快，但不會掉格。
+private let actions: [(name: String, keyFrames: [Int])] = [
+    ("wave", [1, 3, 5, 7]),    // 手往右、往左、往右、往左
+    ("dance", [0, 2, 4, 6]),   // 中、右傾、中、左傾
+    ("jump", [1, 2, 4, 6])     // 蹲、起跳、最高點、落地
+]
+private let frameSeconds = 0.3
+private let actionSeconds = frameSeconds * 8    // 4 個關鍵姿勢連播兩輪
 
 /// 點桌面小工具時執行：記下「招手到什麼時候」，系統會接著重新載入小工具
 struct WaveWidgetIntent: AppIntent {
@@ -71,7 +77,7 @@ struct PetProvider: AppIntentTimelineProvider {
             var t = now
             var i = 0
             while t < until {
-                entries.append(PetEntry(date: t, frame: "pet-\(action)-\(i % 8)", slot: slot))
+                entries.append(PetEntry(date: t, frame: "pet-\(action.name)-\(action.keyFrames[i % action.keyFrames.count])", slot: slot))
                 t = t.addingTimeInterval(frameSeconds)
                 i += 1
             }
@@ -95,6 +101,8 @@ struct PetWidgetView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
+                    .id(entry.frame)
+                    .transition(.identity)   // 換圖時直接切換，不要淡入淡出
                     .padding(4)   // 圖片本身四周已留白，供動作伸展
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
