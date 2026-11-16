@@ -16,7 +16,7 @@ struct PetLiveActivity: Widget {
             // 鎖定畫面橫幅：純淨無文字干擾，只放火星人角色與極簡觸發鈕
             HStack {
                 Spacer()
-                petSprite(context.state.waving ? "pet-wavejoy-2" : "pet-idle-3")
+                petSprite(context.state.waving ? "pet-wavejoy-2" : "pet-idleL-3")
                     .frame(height: 94)
                 Spacer()
                 Button(intent: WaveLiveActivityIntent()) {
@@ -33,7 +33,7 @@ struct PetLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
-                    petSprite(context.state.waving ? "pet-wavejoy-2" : "pet-idle-0")
+                    petSprite(context.state.waving ? "pet-wavejoy-2" : "pet-idleL-0")
                         .frame(height: 92)
                 }
                 DynamicIslandExpandedRegion(.trailing) {

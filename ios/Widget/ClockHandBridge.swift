@@ -132,6 +132,44 @@ struct PixelAnimatedWidgetSprite: View {
     }
 }
 
+/// 待機：身體照常循環播放呼吸的 8 格，眼睛每隔 lookSeconds 秒在「往左看」和「往右看」之間切換。
+/// 做法是把兩組待機動畫（眼睛往左、眼睛往右）疊在一起，再用一個轉得很慢的遮罩輪流露出其中一組。
+struct IdleLookingSprite: View {
+    let cycleDuration: Double
+    var lookSeconds: Double = 10
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            let box = max(w, h)
+            let arcRadius = Double(box) * 48.0
+
+            ZStack {
+                ForEach(0..<2, id: \.self) { side in
+                    PixelAnimatedWidgetSprite(
+                        frameNames: (0..<8).map { "pet-idle\(side == 0 ? "L" : "R")-\($0)" },
+                        cycleDuration: cycleDuration
+                    )
+                    .frame(width: w, height: h)
+                    .mask(
+                        FrameArcMask(
+                            startAngle: -180.0 * Double(side + 1),
+                            endAngle: -180.0 * Double(side),
+                            radius: arcRadius
+                        )
+                        .stroke(style: StrokeStyle(lineWidth: Double(box) * 1.6, lineCap: .butt))
+                        .frame(width: w, height: h)
+                        .widgetClockRotation(period: lookSeconds * 2)
+                        .offset(y: arcRadius)
+                    )
+                }
+            }
+            .frame(width: w, height: h)
+        }
+    }
+}
+
 /// 與 `PixelAnimatedWidgetSprite` 100% 同相位鎖定的「第 4 格（index 3）揮擊碎玻璃」播放器：
 /// - 第 0～2 格（舉棒／舉紅棍蓄力）：液態玻璃完好無損
 /// - 第 3 格（擊中瞬間！）：觸發強光震波 + 飛散玻璃晶屑 + 蜘蛛網色散裂紋

@@ -252,10 +252,17 @@ struct PetWidgetView: View {
                 }
             }
 
-            PixelAnimatedWidgetSprite(
-                frameNames: entry.action.frameNames,
-                cycleDuration: entry.action.cycleDuration
-            )
+            Group {
+                if entry.action == .idle {
+                    // 待機：眼睛每 10 秒換一邊看
+                    IdleLookingSprite(cycleDuration: entry.action.cycleDuration)
+                } else {
+                    PixelAnimatedWidgetSprite(
+                        frameNames: entry.action.frameNames,
+                        cycleDuration: entry.action.cycleDuration
+                    )
+                }
+            }
             .padding(.vertical, 2)      // 圖片已裁掉四周空白，留一點邊就好，火星人才會大
             .padding(.horizontal, family == .systemMedium ? 24 : 2)
         }

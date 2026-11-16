@@ -3,23 +3,28 @@
   "frame_height": 108,
   "frames": 8,
   "animations": {
-    "idle": {
-      "label": "01 待機呼吸",
-      "file": "MV/idle.png",
+    "idleL": {
+      "label": "01 待機（眼睛往左）",
+      "file": "MV/idleL.png",
+      "frame_ms": 165
+    },
+    "idleR": {
+      "label": "02 待機（眼睛往右）",
+      "file": "MV/idleR.png",
       "frame_ms": 165
     },
     "bat": {
-      "label": "02 雙手球棒擊破",
+      "label": "03 雙手球棒擊破",
       "file": "MV/bat.png",
       "frame_ms": 110
     },
     "wave": {
-      "label": "03 揮手",
+      "label": "04 揮手",
       "file": "MV/wave.png",
       "frame_ms": 120
     },
     "wavejoy": {
-      "label": "04 開心揮手",
+      "label": "05 開心揮手",
       "file": "MV/wavejoy.png",
       "frame_ms": 120
     }

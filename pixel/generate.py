@@ -894,21 +894,26 @@ def to_image(c):
 
 
 # ---------------------------------------------------------------- 12 組高精細 MV 8 格像素動畫
-def anim_idle(t):
+def anim_idle(t, look="lookL"):
+    """待機：呼吸、觸手輕擺、每輪眨一次眼。look 決定這一輪眼睛看哪邊（lookL 往左、lookR 往右）；
+    app 和小工具每 10 秒在兩個方向之間切換一次。"""
     idx = int(round(t * FRAMES)) % FRAMES
     table = [
-        # 眼睛：正前方 → 往左看兩格 → 回正 → 眨眼 → 往右看兩格 → 回正
-        ( 0,  0,  0.0, "chill"),
-        ( 0,  0,  0.9, "lookL"),
-        ( 0, -2,  1.6, "lookL"),
-        (-2,  0,  0.4, "chill"),
-        (-2,  0, -1.4, "closed"),
-        ( 0,  0, -1.8, "lookR"),
-        ( 0,  0, -0.6, "lookR"),
-        ( 0,  0,  0.5, "chill"),
+        ( 0,  0,  0.0, look),
+        ( 0,  0,  0.9, look),
+        ( 0, -2,  1.6, look),
+        (-2,  0,  0.4, look),
+        (-2,  0, -1.4, "half"),
+        ( 0,  0, -1.8, "closed"),
+        ( 0,  0, -0.6, "half"),
+        ( 0,  0,  0.5, look),
     ]
     dy, bob, lag, eyes = table[idx]
     return dict(dy=dy, bob=bob, tent_lag=lag, sway=2 * math.pi * t, sway_amp=2.5, eyes=eyes)
+
+
+def anim_idle_right(t):
+    return anim_idle(t, "lookR")
 
 
 def arm_to(side, target, bend=1, d=DESIGN_MV):
@@ -1165,11 +1170,11 @@ def anim_flare(t):
 
 # 目前使用的動作。其餘動作的函式還留在上面，之後要加回來只要補回這個清單。
 ANIMS = [
-    ("idle",    "01 待機呼吸",       anim_idle,    165),
-    ("bat",     "02 雙手球棒擊破",   anim_bat,     110),
-    ("batball", "02b 打棒球（預覽）", anim_batball, 110),
-    ("wave",    "03 揮手",           anim_wave,    120),
-    ("wavejoy", "04 開心揮手",       anim_wavejoy, 120),
+    ("idleL",   "01 待機（眼睛往左）", anim_idle,       165),
+    ("idleR",   "02 待機（眼睛往右）", anim_idle_right, 165),
+    ("bat",     "03 雙手球棒擊破",     anim_bat,        110),
+    ("wave",    "04 揮手",             anim_wave,       120),
+    ("wavejoy", "05 開心揮手",         anim_wavejoy,    120),
 ]
 
 
