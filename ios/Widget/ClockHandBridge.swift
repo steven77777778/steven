@@ -132,11 +132,32 @@ struct PixelAnimatedWidgetSprite: View {
     }
 }
 
-/// 待機：身體照常循環播放呼吸的 8 格，眼睛每隔 lookSeconds 秒在「往左看」和「往右看」之間切換。
-/// 做法是把兩組待機動畫（眼睛往左、眼睛往右）疊在一起，再用一個轉得很慢的遮罩輪流露出其中一組。
+/// 由好幾段圓弧組成的遮罩（角度單位：度）。
+private struct MultiArcMask: Shape {
+    let ranges: [(start: Double, end: Double)]
+    let radius: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        for range in ranges {
+            var arc = Path()
+            arc.addArc(
+                center: CGPoint(x: rect.midX, y: rect.midY),
+                radius: radius,
+                startAngle: .degrees(-range.end),
+                endAngle: .degrees(-range.start),
+                clockwise: false
+            )
+            path.addPath(arc)
+        }
+        return path
+    }
+}
+
+/// 待機：身體照常循環播放呼吸的 8 格；眼睛往左看 10 秒，慢慢移到右邊，往右看 10 秒，再慢慢移回來。
+/// 做法是把四組只差在瞳孔位置的待機動畫疊在一起，再用一個轉得很慢的遮罩依時間表輪流露出其中一組。
 struct IdleLookingSprite: View {
     let cycleDuration: Double
-    var lookSeconds: Double = 10
 
     var body: some View {
         GeometryReader { geo in
@@ -144,23 +165,23 @@ struct IdleLookingSprite: View {
             let h = geo.size.height
             let box = max(w, h)
             let arcRadius = Double(box) * 48.0
+            let degreesPerSecond = 360.0 / IdleLook.cycle
 
             ZStack {
-                ForEach(0..<2, id: \.self) { side in
+                ForEach(IdleLook.schedule, id: \.set) { entry in
                     PixelAnimatedWidgetSprite(
-                        frameNames: (0..<8).map { "pet-idle\(side == 0 ? "L" : "R")-\($0)" },
+                        frameNames: (0..<8).map { "pet-idle\(entry.set)-\($0)" },
                         cycleDuration: cycleDuration
                     )
                     .frame(width: w, height: h)
                     .mask(
-                        FrameArcMask(
-                            startAngle: -180.0 * Double(side + 1),
-                            endAngle: -180.0 * Double(side),
+                        MultiArcMask(
+                            ranges: entry.spans.map { (start: $0.0 * degreesPerSecond, end: $0.1 * degreesPerSecond) },
                             radius: arcRadius
                         )
                         .stroke(style: StrokeStyle(lineWidth: Double(box) * 1.6, lineCap: .butt))
                         .frame(width: w, height: h)
-                        .widgetClockRotation(period: lookSeconds * 2)
+                        .widgetClockRotation(period: IdleLook.cycle)
                         .offset(y: arcRadius)
                     )
                 }

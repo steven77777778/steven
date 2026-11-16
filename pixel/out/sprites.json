@@ -8,6 +8,16 @@
       "file": "MV/idleL.png",
       "frame_ms": 165
     },
+    "idleA": {
+      "label": "01 待機（過渡一）",
+      "file": "MV/idleA.png",
+      "frame_ms": 165
+    },
+    "idleB": {
+      "label": "01 待機（過渡二）",
+      "file": "MV/idleB.png",
+      "frame_ms": 165
+    },
     "idleR": {
       "label": "02 待機（眼睛往右）",
       "file": "MV/idleR.png",

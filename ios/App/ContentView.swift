@@ -19,10 +19,10 @@ private let appActions: [AppPetAction] = [
 
 struct ContentView: View {
     @State private var idleFrame = 0
-    @State private var lookRight = false      // 待機時眼睛看哪邊，每 10 秒換一次
+    @State private var idleLook = "L"         // 待機時用哪一組眼神（左、過渡 A、過渡 B、右）
     @State private var activeSprite: String?
     @State private var activeLabel = "今日も火星が見える"
-    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 21"
+    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 22"
     @State private var activeActionId = "idle"
     @State private var nextIdx = 0
     @State private var actionTask: Task<Void, Never>?
@@ -86,7 +86,7 @@ struct ContentView: View {
                     .blur(radius: 5)
                     .offset(y: 162)
 
-                bmp(activeSprite ?? "pet-idle\(lookRight ? "R" : "L")-\(idleFrame)")
+                bmp(activeSprite ?? "pet-idle\(idleLook)-\(idleFrame)")
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
@@ -191,7 +191,7 @@ struct ContentView: View {
         }
         .onReceive(idleTimer) { _ in
             idleFrame = (idleFrame + 1) % 8
-            lookRight = Int(Date().timeIntervalSince1970 / 10) % 2 == 1
+            idleLook = IdleLook.set(at: Date())
         }
         .onAppear {
             islandOn = !Activity<PetActivityAttributes>.activities.isEmpty
@@ -241,7 +241,7 @@ struct ContentView: View {
                 }
             }
             activeLabel = "今日も火星が見える"
-            activeRefNote = "待機呼吸中 (#64/#80) · 版本 21"
+            activeRefNote = "待機呼吸中 (#64/#80) · 版本 22"
         }
     }
 

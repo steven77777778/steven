@@ -95,6 +95,13 @@ EYES = {
         ".wwwww.",
         ".......",
     ],
+    "lookM": [                    # 介於往左看和正前方之間；眼睛慢慢移動時的過渡
+        ".ddddd.",
+        "dwkkwwd",
+        "dwkkwwd",
+        ".wwwww.",
+        ".......",
+    ],
     "lookD": [
         ".ddddd.",
         ".wwwww.",
@@ -916,6 +923,14 @@ def anim_idle_right(t):
     return anim_idle(t, "lookR")
 
 
+def anim_idle_a(t):          # 過渡一：瞳孔離開左邊一格
+    return anim_idle(t, "lookM")
+
+
+def anim_idle_b(t):          # 過渡二：瞳孔在中間偏右，下一格就到右邊
+    return anim_idle(t, "chill")
+
+
 def arm_to(side, target, bend=1, d=DESIGN_MV):
     """算出讓手掌剛好碰到 target（畫布座標）的手臂角度。side：-1 左手、1 右手；bend：手肘往哪一側彎。"""
     sx, sy = d["shoulder"]
@@ -1170,7 +1185,10 @@ def anim_flare(t):
 
 # 目前使用的動作。其餘動作的函式還留在上面，之後要加回來只要補回這個清單。
 ANIMS = [
+    # 待機分四組，只有瞳孔位置不同：左 → A → B → 右。停在左或右各 10 秒，中間經過 A、B 慢慢移過去。
     ("idleL",   "01 待機（眼睛往左）", anim_idle,       165),
+    ("idleA",   "01 待機（過渡一）",   anim_idle_a,     165),
+    ("idleB",   "01 待機（過渡二）",   anim_idle_b,     165),
     ("idleR",   "02 待機（眼睛往右）", anim_idle_right, 165),
     ("bat",     "03 雙手球棒擊破",     anim_bat,        110),
     ("wave",    "04 揮手",             anim_wave,       120),

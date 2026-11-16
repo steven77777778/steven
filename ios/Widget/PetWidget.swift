@@ -254,7 +254,7 @@ struct PetWidgetView: View {
 
             Group {
                 if entry.action == .idle {
-                    // 待機：眼睛每 10 秒換一邊看
+                    // 待機：眼睛往左看 10 秒，慢慢移到右邊再看 10 秒，循環
                     IdleLookingSprite(cycleDuration: entry.action.cycleDuration)
                 } else {
                     PixelAnimatedWidgetSprite(
