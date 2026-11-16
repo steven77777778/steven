@@ -21,7 +21,7 @@ for url in files {
     ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
     let alphas = stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
     let transparent = alphas.filter { $0 == 0 }.count, opaque = alphas.filter { $0 == 255 }.count
-    if name.hasPrefix("pet-") {
+    if name.hasPrefix("pet-") || name.hasPrefix("bun-") {
         // 火星人：左上角必須是透明的，而且要同時有透明和不透明的像素
         if pixels[3] != 0 || transparent == 0 || opaque == 0 {
             print("FAIL \(name): transparency lost (corner alpha \(pixels[3]), transparent \(transparent), opaque \(opaque))")

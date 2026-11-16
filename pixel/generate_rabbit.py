@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """第二隻桌寵：白色長耳玩偶的原生像素圖產生器（96×108，和火星人同一套畫法）。
 
-身體是一個直筒：上面兩隻長耳、圓圈眼睛加睫毛、梯形嘴巴、臉下方一道縫線、兩條短腿。
-身體用圓角方塊和仿射矩陣在「一格 = 一個像素」的畫布上算出來，眼睛是固定的像素小圖案。
-嘴巴要的是平滑的斜線，像素格子畫不出來，所以成品圖放大 4 倍輸出：
-身體仍是一格一格的像素（每格變成 4×4），只有嘴巴的梯形用平滑的線畫在上面。
+身體是一個直筒：上面兩隻長耳、圓圈眼睛加睫毛、梯形長鼻、臉下方一道縫線、兩條短腿。
+全部用橢圓、圓角方塊和仿射矩陣在「一格 = 一個像素」的畫布上算出來。
 
 用法：python3 pixel/generate_rabbit.py   →  輸出到 pixel/out/rabbit/
 """
@@ -27,23 +25,56 @@ W, H, CX, GROUND = 96, 108, 48.0, 102.0
 FRAMES = g.FRAMES
 
 # 造型尺寸（像素）。整體約 28 寬、86 高：耳朵和腿各佔約兩成，耳朵、身體、腿的外緣連成一直線。
-# （比玩偶略寬一點，臉上的圓眼睛和嘴巴才畫得清楚。）
+# （比玩偶略寬一點，臉上的圓眼睛和長鼻子才畫得清楚。）
 BODY = (60.0, 14.0, 25.0, 3.0)      # 身體直筒：中心 y、半寬、半高、圓角 → y 35 ~ 85
 EAR = (7.3, 30.0, 6.4, 15.0, 6.0)   # 耳朵：離中線的距離、中心 y、半寬、半高、圓角 → y 15 ~ 45（下半段藏在身體裡）
 EAR_PIVOT = 38.0                    # 耳朵繞著這個高度擺動
 LEG = (7.3, 90.0, 6.4, 12.0, 4.0)   # 腿：離中線的距離、中心 y、半寬、半高、圓角 → y 78 ~ 102
-EYE = (6.5, 43.5, 5.0, 9.0)         # 眼睛：離中線的距離、y、寬、高 → 直立的長橢圓
-MOUTH_Y = 56.0                      # 嘴巴中心的高度（y 50.5 ~ 61.5），和眼睛隔開一段
-STITCH_Y = 66.0                     # 臉下方的縫線
+EYE = (7.0, 43.5)                   # 眼睛：離中線的距離、y（靠近臉的上方）
+NOSE = (49.5, 59.0, 2.6, 5.0)       # 嘴巴：上底短、下底長的梯形（上緣 y、下緣 y、上半寬、下半寬），和眼睛隔開一段
+STITCH_Y = 64.0                     # 臉下方的縫線
 
-MOUTH = (8.0, 12.0, 11.0)           # 嘴巴：梯形（上底、下底、高），單位是像素格
-HI = 4                              # 成品圖的放大倍率
+# 左眼的圖案（右眼是鏡像）。k = 黑線，w = 白色
+EYE_STAMPS = {
+    "open": [
+        "...kkkkk..",
+        "..kwwwwwk.",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        "kkwwwwwwwk",
+        "..kwwwwwk.",
+        "k..kkkkk..",
+    ],
+    "closed": [
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        ".kkkkkkkkk",
+        "..........",
+        "..........",
+        "..........",
+    ],
+    "happy": [
+        "..........",
+        "..........",
+        "...kkkkk..",
+        "..k.....k.",
+        ".k.......k",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    ],
+}
 
 REST = dict(dy=0, lean=0, squash=1.0, earL=0.0, earR=0.0, eyes="open", look=0, legL=0, legR=0, blush=False)
 
 
-def render_pixels(pose=None):
-    """畫出像素的部分（原生 96×108）：身體、耳朵、腿、眼睛、縫線、外框。嘴巴另外畫。"""
+def render(pose=None):
     p = dict(REST)
     if pose:
         p.update(pose)
@@ -75,13 +106,28 @@ def render_pixels(pose=None):
     below[:-1, :] |= empty[1:, :]
     c.col[fur & (right | below)] = c.idx["fur_sh"]
 
-    # 5. 臉上的像素細節（眼睛和嘴巴是平滑線條，在 render() 裡另外畫）
+    # 5. 臉：圓圈眼睛（黑線圓圈、裡面白）加外下角兩根短睫毛。用固定的小圖案貼上去，圓才會乾淨。
+    ex, ey = EYE
+    for side in (-1, 1):
+        rows = EYE_STAMPS[p["eyes"]]
+        if side == 1:
+            rows = [r[::-1] for r in rows]                     # 右眼左右對稱
+        ox, oy = pt(body, CX + side * ex + p["look"], ey)
+        c.stamp(rows, ox, oy, {"k": "ink", "w": "fur"}, 6)
+    # 梯形嘴巴：黑線外框、裡面白
+    ny0, ny1, nw0, nw1 = NOSE
+    outer = [pt(body, CX - nw0 + p["look"], ny0), pt(body, CX + nw0 + p["look"], ny0),
+             pt(body, CX + nw1 + p["look"], ny1), pt(body, CX - nw1 + p["look"], ny1)]
+    inner = [pt(body, CX - nw0 + 1.0 + p["look"], ny0 + 1.0), pt(body, CX + nw0 - 1.0 + p["look"], ny0 + 1.0),
+             pt(body, CX + nw1 - 1.3 + p["look"], ny1 - 1.0), pt(body, CX - nw1 + 1.3 + p["look"], ny1 - 1.0)]
+    c.paint(c.poly(outer), "ink", 6)
+    c.paint(c.poly(inner), "fur", 6)
     # 臉下方的縫線：微微下彎的虛線
     for i, x in enumerate(np.arange(-10.5, 11.0, 1.0)):
         if i % 3 == 2:
             continue
-        q = pt(body, CX + x, STITCH_Y + 1.6 * (1 - (x / 10.5) ** 2))
-        c.paint(c.capsule(q, q, 0.55), "ink", 6)
+        sx_, sy_ = pt(body, CX + x, STITCH_Y + 1.6 * (1 - (x / 10.5) ** 2))
+        c.paint(c.capsule((sx_, sy_), (sx_, sy_), 0.55), "ink", 6)
     # 腰側與腳背的小縫線
     for side in (-1, 1):
         hx_, hy_ = pt(body, CX + side * 12.0, 83.0)
@@ -90,48 +136,13 @@ def render_pixels(pose=None):
         c.paint(c.capsule((fx_ - 0.5, fy_), (fx_ + 0.5, fy_), 0.5), "ink", 6)
     if p["blush"]:
         for side in (-1, 1):
-            bx_, by_ = pt(body, CX + side * 10.6, 50.5)
+            bx_, by_ = pt(body, CX + side * 10.4, 50.5)
             c.paint(c.ellipse(T(0, 0), bx_, by_, 1.7, 1.0), "skin", 6)
 
     # 6. 外框
     filled = c.col > 0
     c.col[dilate(filled) & ~filled] = c.idx["line"]
-    return c, body, p
-
-
-def render(pose=None):
-    """畫出一格成品圖（放大 HI 倍的 RGBA 圖）：像素身體 + 平滑線條的梯形嘴巴。"""
-    c, body, p = render_pixels(pose)
-    img = g.to_image(c)
-    img = img.resize((W * HI, H * HI), Image.NEAREST)
-    # 嘴巴：先畫大 4 倍再縮回來，線條邊緣才平滑。線寬等於一個像素格。
-    top, bottom, height = MOUTH
-    y0, y1 = MOUTH_Y - height / 2, MOUTH_Y + height / 2
-    corners = [pt(body, CX - top / 2 + p["look"], y0), pt(body, CX + top / 2 + p["look"], y0),
-               pt(body, CX + bottom / 2 + p["look"], y1), pt(body, CX - bottom / 2 + p["look"], y1)]
-    ss = 4
-    k = HI * ss
-    layer = Image.new("RGBA", (W * k, H * k))
-    d = ImageDraw.Draw(layer)
-    pts = [(x * k, y * k) for x, y in corners]
-    d.polygon(pts, fill=(*g.PALETTE["fur"], 255))
-    d.line(pts + [pts[0]], fill=(*g.PALETTE["ink"], 255), width=k, joint="curve")
-    for x, y in pts:                                           # 轉角補成圓的，才不會缺角
-        d.ellipse([x - k / 2, y - k / 2, x + k / 2, y + k / 2], fill=(*g.PALETTE["ink"], 255))
-    # 眼睛：直立的長橢圓，同樣用平滑的線
-    ex, ey, ew, eh = EYE
-    ink, fur = (*g.PALETTE["ink"], 255), (*g.PALETTE["fur"], 255)
-    for side in (-1, 1):
-        ox, oy = pt(body, CX + side * ex + p["look"], ey)
-        if p["eyes"] == "open":
-            d.ellipse([(ox - ew / 2) * k, (oy - eh / 2) * k, (ox + ew / 2) * k, (oy + eh / 2) * k],
-                      fill=fur, outline=ink, width=k)
-        elif p["eyes"] == "closed":                            # 閉眼：一小段橫線
-            d.line([((ox - ew / 2) * k, (oy + 1.0) * k), ((ox + ew / 2) * k, (oy + 1.0) * k)], fill=ink, width=k)
-        else:                                                  # 開心：向上彎的弧線
-            d.arc([(ox - 3.2) * k, (oy - 2.0) * k, (ox + 3.2) * k, (oy + 4.0) * k], 180, 360, fill=ink, width=k)
-    img.alpha_composite(layer.resize((W * HI, H * HI), Image.LANCZOS))
-    return img
+    return c
 
 
 # ---------------------------------------------------------------- 動畫（每組 8 格）
@@ -146,13 +157,13 @@ def anim_idle(t):
 def anim_ears(t):
     """抖耳朵：兩隻耳朵輪流往外彎。"""
     i = int(round(t * FRAMES)) % FRAMES
-    left = [0, -22, -30, -12, 0, 0, 0, 0][i]
-    right = [0, 0, 0, 0, 0, 22, 30, 12][i]
-    return dict(earL=left, earR=right, eyes="open", look=[0, -1, -1, 0, 0, 1, 1, 0][i])
+    l = [0, -22, -30, -12, 0, 0, 0, 0][i]
+    r = [0, 0, 0, 0, 0, 22, 30, 12][i]
+    return dict(earL=l, earR=r, eyes="open", look=[0, -1, -1, 0, 0, 1, 1, 0][i])
 
 
 def anim_hop(t):
-    """跳一下：蹲、跳起、落地。"""
+    """跳一下：蹲、跳起（耳朵往後甩）、落地。"""
     i = int(round(t * FRAMES)) % FRAMES
     # 每格：高度、壓扁比例、耳朵往外張開的角度（蹲下和落地時張開，騰空時併攏）
     table = [(0, 1.0, 0), (0, 0.9, 10), (-6, 1.05, 3), (-11, 1.0, 0), (-11, 1.0, 4), (-5, 1.03, 9), (0, 0.9, 18), (0, 0.97, 6)]
@@ -177,43 +188,28 @@ ANIMS = [
 ]
 
 
-def on_bg(img, scale=1):
-    """成品圖（已放大 HI 倍）貼到預覽底色上；scale 是再放大的整數倍。"""
-    if scale != 1:
-        img = img.resize((img.width * scale, img.height * scale), Image.NEAREST)
-    out = Image.new("RGB", img.size, g.BG)
-    out.paste(img, (0, 0), img)
-    return out
-
-
 def main():
     os.makedirs(OUT, exist_ok=True)
-    render().save(os.path.join(OUT, "sprite.png"))
-    # 造型大圖：平常與開心的表情，再加一張臉部特寫
-    crop = tuple(v * HI for v in (24, 8, 72, 106))
-    normal = on_bg(render().crop(crop), 2)
-    happy = on_bg(render(dict(eyes="happy", blush=True)).crop(crop), 2)
-    face = on_bg(render().crop(tuple(v * HI for v in (30, 34, 66, 74))), 4)
-    design = Image.new("RGB", (normal.width * 2 + face.width, normal.height), g.BG)
-    design.paste(normal, (0, 0))
-    design.paste(happy, (normal.width, 0))
-    design.paste(face, (normal.width * 2, (normal.height - face.height) // 2))
-    design.save(os.path.join(OUT, "design.png"))
+    g.to_image(render()).save(os.path.join(OUT, "sprite.png"))
+    # 造型大圖
+    big = g.on_bg(g.to_image(render()).crop((24, 8, 72, 106)), 8)
+    happy = g.on_bg(g.to_image(render(dict(eyes='happy', blush=True))).crop((24, 8, 72, 106)), 8)
+    both = Image.new('RGB', (big.width * 2, big.height)); both.paste(big, (0, 0)); both.paste(happy, (big.width, 0)); big = both
+    big.save(os.path.join(OUT, "design.png"))
     # 動畫總覽
-    lw = 150
-    fw, fh = W * HI // 2, H * HI // 2
-    sheet = Image.new("RGB", (lw + fw * FRAMES, (fh + 6) * len(ANIMS)), (20, 23, 32))
+    sc, lw = 3, 150
+    sheet = Image.new("RGB", (lw + W * sc * FRAMES, (H * sc + 6) * len(ANIMS)), (20, 23, 32))
     dr = ImageDraw.Draw(sheet)
     for j, (name, label, fn, ms) in enumerate(ANIMS):
-        frames = [render(fn(i / FRAMES)) for i in range(FRAMES)]
-        strip = Image.new("RGBA", (W * HI * FRAMES, H * HI))
+        frames = [g.to_image(render(fn(i / FRAMES))) for i in range(FRAMES)]
+        strip = Image.new("RGBA", (W * FRAMES, H))
         for i, im in enumerate(frames):
-            strip.paste(im, (i * W * HI, 0))
-            sheet.paste(on_bg(im).resize((fw, fh), Image.LANCZOS), (lw + i * fw, j * (fh + 6)))
+            strip.paste(im, (i * W, 0))
+            sheet.paste(g.on_bg(im, sc), (lw + i * W * sc, j * (H * sc + 6)))
         strip.save(os.path.join(OUT, f"{name}.png"))
-        gif = [on_bg(im) for im in frames]
+        gif = [g.on_bg(im, 5) for im in frames]
         gif[0].save(os.path.join(OUT, f"{name}-preview.gif"), save_all=True, append_images=gif[1:], duration=ms, loop=0)
-        dr.text((10, j * (fh + 6) + fh // 2 - 12), label, font=g.font(22), fill=(240, 240, 245))
+        dr.text((10, j * (H * sc + 6) + H * sc // 2 - 12), label, font=g.font(22), fill=(240, 240, 245))
     sheet.save(os.path.join(OUT, "all-frames.png"))
     print("saved →", OUT)
 

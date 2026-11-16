@@ -9,7 +9,17 @@ private struct AppPetAction: Identifiable {
     let refNote: String
     let frameMs: UInt64
     let loops: Int
+    var sprite: String? = nil       // 圖片名稱的開頭；沒填就是 pet-<id>
+
+    var spriteBase: String { sprite ?? "pet-\(id)" }
 }
+
+/// 第二隻桌寵（白色長耳）的動作
+private let bunnyActions: [AppPetAction] = [
+    .init(id: "ears", label: "抖耳朵",   subtitle: "耳朵動一動", refNote: "兩隻耳朵輪流往外彎", frameMs: 120, loops: 2, sprite: "bun-ears"),
+    .init(id: "hop",  label: "跳一下",   subtitle: "跳！",       refNote: "蹲下、跳起、落地",   frameMs: 100, loops: 2, sprite: "bun-hop"),
+    .init(id: "sway", label: "開心搖擺", subtitle: "♪",          refNote: "左右搖，眼睛彎彎的", frameMs: 120, loops: 2, sprite: "bun-sway"),
+]
 
 private let appActions: [AppPetAction] = [
     .init(id: "bat",      label: "球棒擊破 💥", subtitle: "火星人 — 開場雙手揮棒擊碎紅墨",        refNote: "對應截圖 #01-#04, #57-#59", frameMs: 110, loops: 2),
@@ -18,11 +28,12 @@ private let appActions: [AppPetAction] = [
 ]
 
 struct ContentView: View {
+    @AppStorage("pet") private var pet = "martian"      // 目前在 app 裡看的是哪一隻
     @State private var idleFrame = 0
     @State private var idleLook = "L"         // 待機時用哪一組眼神（左、過渡 A、過渡 B、右）
     @State private var activeSprite: String?
     @State private var activeLabel = "今日も火星が見える"
-    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 23"
+    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 24"
     @State private var activeActionId = "idle"
     @State private var nextIdx = 0
     @State private var actionTask: Task<Void, Never>?
@@ -86,7 +97,7 @@ struct ContentView: View {
                     .blur(radius: 5)
                     .offset(y: 162)
 
-                bmp(activeSprite ?? "pet-idle\(idleLook)-\(idleFrame)")
+                bmp(activeSprite ?? (pet == "bunny" ? "bun-idle-\(idleFrame)" : "pet-idle\(idleLook)-\(idleFrame)"))
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
@@ -101,7 +112,7 @@ struct ContentView: View {
             }
             .offset(x: position.width + shakeX, y: position.height - 20)
             .onTapGesture {
-                let act = appActions[nextIdx % appActions.count]
+                let act = actions[nextIdx % actions.count]
                 nextIdx += 1
                 play(act)
             }
@@ -127,7 +138,7 @@ struct ContentView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(appActions) { act in
+                        ForEach(actions) { act in
                             let selected = activeActionId == act.id
                             Button {
                                 play(act)
@@ -150,11 +161,30 @@ struct ContentView: View {
 
                 HStack(spacing: 10) {
                     Button {
+                        actionTask?.cancel()
+                        activeSprite = nil
+                        activeActionId = "idle"
+                        glassCrackedOrigin = nil
+                        pet = pet == "bunny" ? "martian" : "bunny"
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text(pet == "bunny" ? "換火星人" : "換白色長耳")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                        }
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .marsLiquidGlassCapsule(interactive: true)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
                         islandOn ? stopIsland() : startIsland()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: islandOn ? "sparkles" : "capsule.portrait")
-                            Text(islandOn ? "收回靈動島" : "放到 iPhone 17 靈動島")
+                            Text(islandOn ? "收回靈動島" : "靈動島")
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                         }
                         .foregroundStyle(.white)
@@ -170,7 +200,7 @@ struct ContentView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.clockwise")
-                            Text("刷新小工具")
+                            Text("刷新")
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                         }
                         .foregroundStyle(.white.opacity(0.9))
@@ -198,6 +228,8 @@ struct ContentView: View {
         }
     }
 
+    private var actions: [AppPetAction] { pet == "bunny" ? bunnyActions : appActions }
+
     private func play(_ action: AppPetAction) {
         actionTask?.cancel()
         activeActionId = action.id
@@ -211,7 +243,7 @@ struct ContentView: View {
             let breaksGlass = action.id == "bat"
             for i in 0..<(8 * action.loops) {
                 let frame = i % 8
-                activeSprite = "pet-\(action.id)-\(frame)"
+                activeSprite = "\(action.spriteBase)-\(frame)"
                 if breaksGlass && frame == 3 {
                     glassCrackedOrigin = UnitPoint(x: 0.18, y: 0.63)   // 球棒往左下砸的落點
                     glassFlash = true
@@ -241,7 +273,7 @@ struct ContentView: View {
                 }
             }
             activeLabel = "今日も火星が見える"
-            activeRefNote = "待機呼吸中 (#64/#80) · 版本 23"
+            activeRefNote = "待機呼吸中 (#64/#80) · 版本 24"
         }
     }
 

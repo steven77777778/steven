@@ -42,6 +42,31 @@ enum MarsWidgetAction: String, CaseIterable, AppEnum {
     static let tapRotation: [MarsWidgetAction] = [.bat, .wave, .wavejoy]
 }
 
+/// 小工具顯示哪一隻桌寵
+enum PetKind: String, AppEnum {
+    case martian
+    case bunny
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "角色"
+    static var caseDisplayRepresentations: [PetKind: DisplayRepresentation] = [
+        .martian: "火星人",
+        .bunny:   "白色長耳"
+    ]
+}
+
+/// 白色長耳的動作：平常待機，點一下依序播抖耳朵、跳一下、開心搖擺
+enum BunnyAction {
+    static let tapRotation = ["ears", "hop", "sway"]
+
+    static func frameNames(_ action: String) -> [String] {
+        (0..<8).map { "bun-\(action)-\($0)" }
+    }
+
+    static func cycleDuration(_ action: String) -> Double {
+        action == "idle" ? 1.5 : 0.96
+    }
+}
+
 /// 點擊桌面小工具時執行：切換到下一個動作，播完自動回到待機呼吸
 struct WaveWidgetIntent: AppIntent {
     static var title: LocalizedStringResource = "和火星人互動"
@@ -88,13 +113,16 @@ enum PetBackdropStyle: String, AppEnum {
 
 struct PetWidgetConfig: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "火星人桌寵"
-    static var description = IntentDescription("選擇小工具放在主畫面的哪一格（底圖會換成那一格的桌布，看起來像透明），以及點擊後的動作。")
+    static var description = IntentDescription("選擇角色、小工具放在主畫面的哪一格（底圖會換成那一格的桌布，看起來像透明），以及點擊後的動作。")
+
+    @Parameter(title: "角色", default: .martian)
+    var pet: PetKind
 
     // 預設用桌布底圖營造透明感；位置要選小工具實際所在的那一格，底圖才會和桌布接起來
     @Parameter(title: "主畫面位置與風格", default: .bottomRight)
     var style: PetBackdropStyle
 
-    @Parameter(title: "點擊動作偏好", default: .idle)
+    @Parameter(title: "火星人的點擊動作", default: .idle)
     var pinnedAction: MarsWidgetAction
 
     @Parameter(title: "揮棒時敲碎玻璃的特效", default: true)
@@ -107,6 +135,8 @@ struct PetEntry: TimelineEntry {
     let style: PetBackdropStyle
     let shatterGlass: Bool
     let crackedAftermathBy: MarsWidgetAction?
+    var pet: PetKind = .martian
+    var bunnyAction = "idle"       // 白色長耳正在播的動作
 }
 
 struct PetProvider: AppIntentTimelineProvider {
@@ -121,7 +151,8 @@ struct PetProvider: AppIntentTimelineProvider {
             action: previewAct,
             style: configuration.style,
             shatterGlass: configuration.shatterGlass,
-            crackedAftermathBy: nil
+            crackedAftermathBy: nil,
+            pet: configuration.pet
         )
     }
 
@@ -129,6 +160,21 @@ struct PetProvider: AppIntentTimelineProvider {
         let defaults = UserDefaults.standard
         let now = Date()
         let until = Date(timeIntervalSince1970: defaults.double(forKey: untilKey))
+
+        if configuration.pet == .bunny {
+            // 白色長耳：動作期間播那個動作，到時間回待機
+            func entry(_ date: Date, _ action: String) -> PetEntry {
+                PetEntry(date: date, action: .idle, style: configuration.style, shatterGlass: false,
+                         crackedAftermathBy: nil, pet: .bunny, bunnyAction: action)
+            }
+            guard now < until else {
+                return Timeline(entries: [entry(now, "idle")], policy: .never)
+            }
+            let idx = defaults.integer(forKey: playKey)
+            let action = BunnyAction.tapRotation[idx % BunnyAction.tapRotation.count]
+            return Timeline(entries: [entry(now, action), entry(until, "idle"), entry(until.addingTimeInterval(1.2), "idle")],
+                            policy: .never)
+        }
 
         var entries: [PetEntry] = []
         if now < until {
@@ -253,7 +299,12 @@ struct PetWidgetView: View {
             }
 
             Group {
-                if entry.action == .idle {
+                if entry.pet == .bunny {
+                    PixelAnimatedWidgetSprite(
+                        frameNames: BunnyAction.frameNames(entry.bunnyAction),
+                        cycleDuration: BunnyAction.cycleDuration(entry.bunnyAction)
+                    )
+                } else if entry.action == .idle {
                     // 待機：眼睛往左看 10 秒，慢慢移到右邊再看 10 秒，循環
                     IdleLookingSprite(cycleDuration: entry.action.cycleDuration)
                 } else {
@@ -340,7 +391,7 @@ struct PetWidget: Widget {
             PetWidgetView(entry: entry)
         }
         .configurationDisplayName("火星人桌寵")
-        .description("平常待機呼吸，點一下依序播球棒、揮手、開心揮手。")
+        .description("火星人或白色長耳。平常待機，點一下依序播放動作。")
         .supportedFamilies([.systemSmall])   // 桌布底圖只對應小尺寸的六個位置
         .contentMarginsDisabled()
     }

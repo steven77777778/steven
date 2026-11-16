@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 import generate as g
+import generate_rabbit as rabbit
 
 DESIGN = g.DESIGN_MV
 CROP = (11, 14, 89, 105)     # 每一格裁切的範圍（左、上、右、下），和 pixel/preview_glass.py 一致
@@ -34,7 +35,7 @@ def save_bmp(name, img):
 
 
 def main():
-    for old in glob.glob(os.path.join(SPRITES, "pet-*.bmp")):
+    for old in glob.glob(os.path.join(SPRITES, "pet-*.bmp")) + glob.glob(os.path.join(SPRITES, "bun-*.bmp")):
         os.remove(old)
     # 桌布底圖：照同一種檔頭重寫一次（像素不變）
     for path in glob.glob(os.path.join(SPRITES, "bg-*.bmp")):
@@ -57,6 +58,18 @@ def main():
     head_crop = g.to_image(g.render(DESIGN, {})).crop((28, 16, 68, 56))
     save_bmp("pet-head", head_crop)
     save_bmp("pet-head-happy", g.to_image(g.render(DESIGN, {"eyes": "joy"})).crop((28, 16, 68, 56)))
+
+    # 4. 第二隻桌寵（白色長耳玩偶）：同樣每組 8 格，裁成牠自己的共同範圍
+    bun = {(name, i): g.to_image(rabbit.render(fn(i / g.FRAMES)))
+           for name, _, fn, _ in rabbit.ANIMS for i in range(g.FRAMES)}
+    alpha = np.zeros((rabbit.H, rabbit.W), bool)
+    for im in bun.values():
+        alpha |= np.array(im)[..., 3] > 0
+    xs, ys = np.where(alpha.any(axis=0))[0], np.where(alpha.any(axis=1))[0]
+    bun_box = (max(0, xs.min() - 2), max(0, ys.min() - 2), min(rabbit.W, xs.max() + 3), min(rabbit.H, ys.max() + 3))
+    for (name, i), im in bun.items():
+        save_bmp(f"bun-{name}-{i}", im.crop(bun_box))
+    print("rabbit crop", tuple(int(v) for v in bun_box))
 
     total = len(glob.glob(os.path.join(SPRITES, "*.bmp")))
     print(f"Exported {total} BMP files to {SPRITES}")
