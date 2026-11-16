@@ -897,13 +897,14 @@ def to_image(c):
 def anim_idle(t):
     idx = int(round(t * FRAMES)) % FRAMES
     table = [
+        # 眼睛：正前方 → 往左看兩格 → 回正 → 眨眼 → 往右看兩格 → 回正
         ( 0,  0,  0.0, "chill"),
-        ( 0,  0,  0.9, "chill"),
-        ( 0, -2,  1.6, "chill"),
+        ( 0,  0,  0.9, "lookL"),
+        ( 0, -2,  1.6, "lookL"),
         (-2,  0,  0.4, "chill"),
-        (-2,  0, -1.4, "half"),
-        ( 0,  0, -1.8, "closed"),
-        ( 0,  0, -0.6, "half"),
+        (-2,  0, -1.4, "closed"),
+        ( 0,  0, -1.8, "lookR"),
+        ( 0,  0, -0.6, "lookR"),
         ( 0,  0,  0.5, "chill"),
     ]
     dy, bob, lag, eyes = table[idx]
