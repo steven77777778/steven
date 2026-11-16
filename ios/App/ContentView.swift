@@ -22,7 +22,7 @@ struct ContentView: View {
     @State private var idleLook = "L"         // 待機時用哪一組眼神（左、過渡 A、過渡 B、右）
     @State private var activeSprite: String?
     @State private var activeLabel = "今日も火星が見える"
-    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 22"
+    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 23"
     @State private var activeActionId = "idle"
     @State private var nextIdx = 0
     @State private var actionTask: Task<Void, Never>?
@@ -241,7 +241,7 @@ struct ContentView: View {
                 }
             }
             activeLabel = "今日も火星が見える"
-            activeRefNote = "待機呼吸中 (#64/#80) · 版本 22"
+            activeRefNote = "待機呼吸中 (#64/#80) · 版本 23"
         }
     }
 

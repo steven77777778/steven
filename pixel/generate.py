@@ -116,6 +116,28 @@ EYES = {
         ".......",
         ".......",
     ],
+    # 半睜眼時瞳孔要留在原本看的那一邊，眨完眼才不會像是從中間飄過去
+    "halfL": [
+        ".ddddd.",
+        "ddddddd",
+        "dkkwwwd",
+        ".......",
+        ".......",
+    ],
+    "halfM": [
+        ".ddddd.",
+        "ddddddd",
+        "dwkkwwd",
+        ".......",
+        ".......",
+    ],
+    "halfR": [
+        ".ddddd.",
+        "ddddddd",
+        "dwwwkkd",
+        ".......",
+        ".......",
+    ],
     "closed": [
         ".......",
         ".ddddd.",
@@ -905,14 +927,15 @@ def anim_idle(t, look="lookL"):
     """待機：呼吸、觸手輕擺、每輪眨一次眼。look 決定這一輪眼睛看哪邊（lookL 往左、lookR 往右）；
     app 和小工具每 10 秒在兩個方向之間切換一次。"""
     idx = int(round(t * FRAMES)) % FRAMES
+    half = {"lookL": "halfL", "lookM": "halfM", "chill": "half", "lookR": "halfR"}[look]   # 眨眼時瞳孔位置不變
     table = [
         ( 0,  0,  0.0, look),
         ( 0,  0,  0.9, look),
         ( 0, -2,  1.6, look),
         (-2,  0,  0.4, look),
-        (-2,  0, -1.4, "half"),
+        (-2,  0, -1.4, half),
         ( 0,  0, -1.8, "closed"),
-        ( 0,  0, -0.6, "half"),
+        ( 0,  0, -0.6, half),
         ( 0,  0,  0.5, look),
     ]
     dy, bob, lag, eyes = table[idx]
