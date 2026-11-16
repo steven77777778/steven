@@ -30,9 +30,9 @@ BODY = (60.0, 14.0, 25.0, 3.0)      # 身體直筒：中心 y、半寬、半高�
 EAR = (7.3, 30.0, 6.4, 15.0, 6.0)   # 耳朵：離中線的距離、中心 y、半寬、半高、圓角 → y 15 ~ 45（下半段藏在身體裡）
 EAR_PIVOT = 38.0                    # 耳朵繞著這個高度擺動
 LEG = (7.3, 90.0, 6.4, 12.0, 4.0)   # 腿：離中線的距離、中心 y、半寬、半高、圓角 → y 78 ~ 102
-EYE = (7.5, 47.0)                   # 眼睛：離中線的距離、y
-NOSE = (45.0, 56.5, 1.4, 3.6)       # 鼻子：上緣 y、下緣 y、上半寬、下半寬
-STITCH_Y = 62.0                     # 臉下方的縫線
+EYE = (7.0, 43.5)                   # 眼睛：離中線的距離、y（靠近臉的上方）
+NOSE = (49.5, 59.0, 2.6, 5.0)       # 嘴巴：上底短、下底長的梯形（上緣 y、下緣 y、上半寬、下半寬），和眼睛隔開一段
+STITCH_Y = 64.0                     # 臉下方的縫線
 
 # 左眼的圖案（右眼是鏡像）。k = 黑線，w = 白色
 EYE_STAMPS = {
@@ -114,7 +114,7 @@ def render(pose=None):
             rows = [r[::-1] for r in rows]                     # 右眼左右對稱
         ox, oy = pt(body, CX + side * ex + p["look"], ey)
         c.stamp(rows, ox, oy, {"k": "ink", "w": "fur"}, 6)
-    # 梯形長鼻：黑線外框、裡面白
+    # 梯形嘴巴：黑線外框、裡面白
     ny0, ny1, nw0, nw1 = NOSE
     outer = [pt(body, CX - nw0 + p["look"], ny0), pt(body, CX + nw0 + p["look"], ny0),
              pt(body, CX + nw1 + p["look"], ny1), pt(body, CX - nw1 + p["look"], ny1)]
@@ -136,7 +136,7 @@ def render(pose=None):
         c.paint(c.capsule((fx_ - 0.5, fy_), (fx_ + 0.5, fy_), 0.5), "ink", 6)
     if p["blush"]:
         for side in (-1, 1):
-            bx_, by_ = pt(body, CX + side * 10.2, 53.5)
+            bx_, by_ = pt(body, CX + side * 10.4, 50.5)
             c.paint(c.ellipse(T(0, 0), bx_, by_, 1.7, 1.0), "skin", 6)
 
     # 6. 外框
