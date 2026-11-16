@@ -31,8 +31,97 @@ EAR = (7.3, 30.0, 6.4, 15.0, 6.0)   # 耳朵：離中線的距離、中心 y、�
 EAR_PIVOT = 38.0                    # 耳朵繞著這個高度擺動
 LEG = (7.3, 90.0, 6.4, 12.0, 4.0)   # 腿：離中線的距離、中心 y、半寬、半高、圓角 → y 78 ~ 102
 EYE = (7.0, 43.5)                   # 眼睛：離中線的距離、y（靠近臉的上方）
-NOSE = (50.0, 64.0, 3.4, 5.0)       # 嘴巴：照手繪的梯形再拉長（上緣 y、下緣 y、上半寬、下半寬）→ 上底 7、下底 10、高 15
+NOSE = (50.5, 64.5, 3.5, 6.0)       # 嘴巴：照手繪的梯形再拉長（上緣 y、下緣 y、上半寬、下半寬）→ 上底 8、下底 13、高 15
 STITCH_Y = 68.5                     # 臉下方的縫線
+
+# 左眼的圖案（右眼是鏡像）。k = 黑線，w = 白色
+EYE_STAMPS = {
+    "open": [
+        "...kkkkk..",
+        "..kwwwwwk.",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        ".kwwwwwwwk",
+        "kkwwwwwwwk",
+        "..kwwwwwk.",
+        "k..kkkkk..",
+    ],
+    "closed": [
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        ".kkkkkkkkk",
+        "..........",
+        "..........",
+        "..........",
+    ],
+    "happy": [
+        "..........",
+        "..........",
+        "...kkkkk..",
+        "..k.....k.",
+        ".k.......k",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+    ],
+}
+
+REST = dict(dy=0, lean=0, squash=1.0, earL=0.0, earR=0.0, eyes="open", look=0, legL=0, legR=0, blush=False)
+
+
+def render(pose=None):
+    p = dict(REST)
+    if pose:
+        p.update(pose)
+    c = g.Canvas(W, H, list(g.PALETTE))
+    dy = round(p["dy"])
+    sq = p["squash"]
+    body = T(0, dy) @ R(p["lean"], CX, GROUND) @ S(1.0 + (1.0 - sq) * 0.5, sq, CX, GROUND)
+
+    # 1. 腿（抬腳時整條腿往上縮）
+    off, lcy, lhw, lhh, lr = LEG
+    for part, side, lift in ((1, -1, p["legL"]), (2, 1, p["legR"])):
+        c.paint(c.box(body, CX + side * off, lcy - lift / 2, lhw, lhh - lift / 2, lr), "fur", part)
+    # 2. 耳朵（各自繞著根部擺動）
+    off, ecy, ehw, ehh, er = EAR
+    for part, side, ang in ((3, -1, p["earL"]), (4, 1, p["earR"])):
+        ear = body @ R(ang, CX + side * off, EAR_PIVOT)
+        c.paint(c.box(ear, CX + side * off, ecy, ehw, ehh, er), "fur", part)
+    # 3. 身體直筒
+    bcy, bhw, bhh, br = BODY
+    c.paint(c.box(body, CX, bcy, bhw, bhh, br), "fur", 5)
+
+    # 4. 陰影：右緣兩格、下緣一格
+    fur = c.col == c.idx["fur"]
+    empty = c.col == 0
+    right = np.zeros_like(fur)
+    right[:, :-1] |= empty[:, 1:]
+    right[:, :-2] |= empty[:, 2:]
+    below = np.zeros_like(fur)
+    below[:-1, :] |= empty[1:, :]
+    c.col[fur & (right | below)] = c.idx["fur_sh"]
+
+    # 5. 臉：圓圈眼睛（黑線圓圈、裡面白）加外下角兩根短睫毛。用固定的小圖案貼上去，圓才會乾淨。
+    ex, ey = EYE
+    for side in (-1, 1):
+        rows = EYE_STAMPS[p["eyes"]]
+        if side == 1:
+            rows = [r[::-1] for r in rows]                     # 右眼左右對稱
+        ox, oy = pt(body, CX + side * ex + p["look"], ey)
+        c.stamp(rows, ox, oy, {"k": "ink", "w": "fur"}, 6)
+    # 梯形嘴巴：黑線外框、裡面白
+    ny0, ny1, nw0, nw1 = NOSE
+    corners = [pt(body, CX - nw0 + p["look"], ny0), pt(body, CX + nw0 + p["look"], ny0),
+               pt(body, CX + nw1 + p["look"], ny1), pt(body, CX - nw1 + p["look"], ny1)]
+    c.paint(c.poly(corners), "fur", 6)
+    for q0, q1 in zip(corners, corners[1:] + corners[:1]):     # 四條邊各畫一條 1 像素的線，斜邊才會均勻
+        c.paint(c.capsule(q0, q1, 0.5), "ink", 6)
+    # 臉下方的縫線
 
 # 左眼的圖案（右眼是鏡像）。k = 黑線，w = 白色
 EYE_STAMPS = {
