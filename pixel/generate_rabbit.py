@@ -32,49 +32,11 @@ BODY = (60.0, 14.0, 25.0, 3.0)      # 身體直筒：中心 y、半寬、半高�
 EAR = (7.3, 30.0, 6.4, 15.0, 6.0)   # 耳朵：離中線的距離、中心 y、半寬、半高、圓角 → y 15 ~ 45（下半段藏在身體裡）
 EAR_PIVOT = 38.0                    # 耳朵繞著這個高度擺動
 LEG = (7.3, 90.0, 6.4, 12.0, 4.0)   # 腿：離中線的距離、中心 y、半寬、半高、圓角 → y 78 ~ 102
-EYE = (7.0, 43.5)                   # 眼睛：離中線的距離、y（靠近臉的上方）
-MOUTH_Y = 57.5                      # 嘴巴中心的高度（y 50 ~ 65），和眼睛隔開一段
-STITCH_Y = 68.5                     # 臉下方的縫線
+EYE = (6.5, 43.5, 5.0, 9.0)         # 眼睛：離中線的距離、y、寬、高 → 直立的長橢圓
+MOUTH_Y = 56.0                      # 嘴巴中心的高度（y 50.5 ~ 61.5），和眼睛隔開一段
+STITCH_Y = 66.0                     # 臉下方的縫線
 
-# 左眼的圖案（右眼是鏡像）。k = 黑線，w = 白色
-EYE_STAMPS = {
-    "open": [
-        "...kkkkk..",
-        "..kwwwwwk.",
-        ".kwwwwwwwk",
-        ".kwwwwwwwk",
-        ".kwwwwwwwk",
-        ".kwwwwwwwk",
-        "kkwwwwwwwk",
-        "..kwwwwwk.",
-        "k..kkkkk..",
-    ],
-    "closed": [
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-        ".kkkkkkkkk",
-        "..........",
-        "..........",
-        "..........",
-    ],
-    "happy": [
-        "..........",
-        "..........",
-        "...kkkkk..",
-        "..k.....k.",
-        ".k.......k",
-        "..........",
-        "..........",
-        "..........",
-        "..........",
-    ],
-}
-
-
-MOUTH = (8.0, 12.0, 15.0)           # 嘴巴：瘦高的梯形（上底、下底、高），單位是像素格
+MOUTH = (8.0, 12.0, 11.0)           # 嘴巴：梯形（上底、下底、高），單位是像素格
 HI = 4                              # 成品圖的放大倍率
 
 REST = dict(dy=0, lean=0, squash=1.0, earL=0.0, earR=0.0, eyes="open", look=0, legL=0, legR=0, blush=False)
@@ -113,14 +75,7 @@ def render_pixels(pose=None):
     below[:-1, :] |= empty[1:, :]
     c.col[fur & (right | below)] = c.idx["fur_sh"]
 
-    # 5. 臉：眼睛和嘴巴都是固定的小圖案，位置跟著身體移動，圖案本身不旋轉
-    legend = {"k": "ink", "w": "fur"}
-    ex, ey = EYE
-    for side in (-1, 1):
-        rows = EYE_STAMPS[p["eyes"]]
-        if side == 1:
-            rows = [r[::-1] for r in rows]                     # 右眼左右對稱
-        c.stamp(rows, *pt(body, CX + side * ex + p["look"], ey), legend, 6)
+    # 5. 臉上的像素細節（眼睛和嘴巴是平滑線條，在 render() 裡另外畫）
     # 臉下方的縫線：微微下彎的虛線
     for i, x in enumerate(np.arange(-10.5, 11.0, 1.0)):
         if i % 3 == 2:
@@ -135,7 +90,7 @@ def render_pixels(pose=None):
         c.paint(c.capsule((fx_ - 0.5, fy_), (fx_ + 0.5, fy_), 0.5), "ink", 6)
     if p["blush"]:
         for side in (-1, 1):
-            bx_, by_ = pt(body, CX + side * 10.4, 50.5)
+            bx_, by_ = pt(body, CX + side * 10.6, 50.5)
             c.paint(c.ellipse(T(0, 0), bx_, by_, 1.7, 1.0), "skin", 6)
 
     # 6. 外框
@@ -163,6 +118,18 @@ def render(pose=None):
     d.line(pts + [pts[0]], fill=(*g.PALETTE["ink"], 255), width=k, joint="curve")
     for x, y in pts:                                           # 轉角補成圓的，才不會缺角
         d.ellipse([x - k / 2, y - k / 2, x + k / 2, y + k / 2], fill=(*g.PALETTE["ink"], 255))
+    # 眼睛：直立的長橢圓，同樣用平滑的線
+    ex, ey, ew, eh = EYE
+    ink, fur = (*g.PALETTE["ink"], 255), (*g.PALETTE["fur"], 255)
+    for side in (-1, 1):
+        ox, oy = pt(body, CX + side * ex + p["look"], ey)
+        if p["eyes"] == "open":
+            d.ellipse([(ox - ew / 2) * k, (oy - eh / 2) * k, (ox + ew / 2) * k, (oy + eh / 2) * k],
+                      fill=fur, outline=ink, width=k)
+        elif p["eyes"] == "closed":                            # 閉眼：一小段橫線
+            d.line([((ox - ew / 2) * k, (oy + 1.0) * k), ((ox + ew / 2) * k, (oy + 1.0) * k)], fill=ink, width=k)
+        else:                                                  # 開心：向上彎的弧線
+            d.arc([(ox - 3.2) * k, (oy - 2.0) * k, (ox + 3.2) * k, (oy + 4.0) * k], 180, 360, fill=ink, width=k)
     img.alpha_composite(layer.resize((W * HI, H * HI), Image.LANCZOS))
     return img
 
