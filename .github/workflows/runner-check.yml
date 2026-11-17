@@ -1,0 +1,10 @@
+name: Runner check (temporary)
+on:
+  push:
+    paths:
+      - ".github/workflows/runner-check.yml"
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "linux runner ok"
