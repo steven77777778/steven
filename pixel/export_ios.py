@@ -70,6 +70,10 @@ def main():
     for (name, i), im in bun.items():
         save_bmp(f"bun-{name}-{i}", im.crop(bun_box))
     print("rabbit crop", tuple(int(v) for v in bun_box))
+    # 白色長耳靈動島用的臉部特寫（耳朵到嘴巴）
+    face = (24, 12, 72, 64)
+    save_bmp("bun-head", g.to_image(rabbit.render()).crop(face))
+    save_bmp("bun-head-happy", g.to_image(rabbit.render(dict(eyes="happy", blush=True))).crop(face))
 
     total = len(glob.glob(os.path.join(SPRITES, "*.bmp")))
     print(f"Exported {total} BMP files to {SPRITES}")

@@ -48,8 +48,49 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.marspet.app.widget
+  # 第二隻桌寵：白色長耳。和火星人共用程式碼，但是獨立的 app（不同的識別碼，裝了不會蓋掉火星人）。
+  Bunny:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    info:
+      path: App/InfoBunny.plist
+      properties:
+        CFBundleDisplayName: "\u3164"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSSupportsLiveActivities: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marspet.bunny
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIconBunny
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: BUNNY
+    dependencies:
+      - target: BunnyWidget
+  BunnyWidget:
+    type: app-extension
+    platform: iOS
+    sources: [Widget, Shared]
+    info:
+      path: Widget/InfoBunny.plist
+      properties:
+        CFBundleDisplayName: "\u3164"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marspet.bunny.widget
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: BUNNY
 schemes:
   MarsPet:
     build:
       targets:
         MarsPet: all
+  Bunny:
+    build:
+      targets:
+        Bunny: all

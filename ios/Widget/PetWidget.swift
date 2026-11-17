@@ -43,15 +43,12 @@ enum MarsWidgetAction: String, CaseIterable, AppEnum {
 }
 
 /// 小工具顯示哪一隻桌寵
-enum PetKind: String, AppEnum {
+enum PetKind {
     case martian
     case bunny
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "角色"
-    static var caseDisplayRepresentations: [PetKind: DisplayRepresentation] = [
-        .martian: "火星人",
-        .bunny:   "白色長耳"
-    ]
+    /// 每個 app 只有一隻：火星人 app 是火星人，白色長耳 app 是白色長耳
+    static var current: PetKind { isBunnyApp ? .bunny : .martian }
 }
 
 /// 白色長耳的動作：平常待機，點一下依序播抖耳朵、跳一下、開心搖擺
@@ -112,21 +109,24 @@ enum PetBackdropStyle: String, AppEnum {
 }
 
 struct PetWidgetConfig: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "火星人桌寵"
-    static var description = IntentDescription("選擇角色、小工具放在主畫面的哪一格（底圖會換成那一格的桌布，看起來像透明），以及點擊後的動作。")
+    static var title: LocalizedStringResource = isBunnyApp ? "白色長耳" : "火星人桌寵"
+    static var description = IntentDescription("選擇小工具放在主畫面的哪一格（底圖會換成那一格的桌布，看起來像透明），以及點擊後的動作。")
 
-    @Parameter(title: "角色", default: .martian)
-    var pet: PetKind
-
-    // 預設用桌布底圖營造透明感；位置要選小工具實際所在的那一格，底圖才會和桌布接起來
+     // 預設用桌布底圖營造透明感；位置要選小工具實際所在的那一格，底圖才會和桌布接起來
     @Parameter(title: "主畫面位置與風格", default: .bottomRight)
     var style: PetBackdropStyle
 
-    @Parameter(title: "火星人的點擊動作", default: .idle)
+#if BUNNY
+    // 白色長耳的 app 沒有這兩個火星人專用的設定
+    var pinnedAction: MarsWidgetAction { .idle }
+    var shatterGlass: Bool { false }
+#else
+    @Parameter(title: "點擊後的動作", default: .idle)
     var pinnedAction: MarsWidgetAction
 
     @Parameter(title: "揮棒時敲碎玻璃的特效", default: true)
     var shatterGlass: Bool
+#endif
 }
 
 struct PetEntry: TimelineEntry {
@@ -152,7 +152,7 @@ struct PetProvider: AppIntentTimelineProvider {
             style: configuration.style,
             shatterGlass: configuration.shatterGlass,
             crackedAftermathBy: nil,
-            pet: configuration.pet
+            pet: PetKind.current
         )
     }
 
@@ -161,7 +161,7 @@ struct PetProvider: AppIntentTimelineProvider {
         let now = Date()
         let until = Date(timeIntervalSince1970: defaults.double(forKey: untilKey))
 
-        if configuration.pet == .bunny {
+        if PetKind.current == .bunny {
             // 白色長耳：動作期間播那個動作，到時間回待機
             func entry(_ date: Date, _ action: String) -> PetEntry {
                 PetEntry(date: date, action: .idle, style: configuration.style, shatterGlass: false,

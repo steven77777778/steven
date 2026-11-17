@@ -22,24 +22,34 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
-      - name: Build (unsigned)
+      - name: Build (unsigned) — 火星人與白色長耳兩個 app
         working-directory: ios
         run: |
           set -o pipefail
-          xcodebuild -project MarsPet.xcodeproj -scheme MarsPet -configuration Release \
-            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build | tail -n 200
+          for scheme in MarsPet Bunny; do
+            xcodebuild -project MarsPet.xcodeproj -scheme $scheme -configuration Release \
+              -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              build | tail -n 120
+          done
 
-      - name: Package ipa
+      - name: Package two ipa files
         working-directory: ios
         run: |
-          mkdir Payload
-          cp -R build/Build/Products/Release-iphoneos/MarsPet.app Payload/
-          ls Payload/MarsPet.app Payload/MarsPet.app/PlugIns
-          zip -qry MarsPet.ipa Payload
+          for app in MarsPet Bunny; do
+            rm -rf Payload && mkdir Payload
+            cp -R build/Build/Products/Release-iphoneos/$app.app Payload/
+            ls Payload/$app.app/PlugIns
+            /usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" Payload/$app.app/Info.plist
+            zip -qry $app.ipa Payload
+          done
 
       - uses: actions/upload-artifact@v4
         with:
           name: MarsPet-ipa
           path: ios/MarsPet.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bunny-ipa
+          path: ios/Bunny.ipa

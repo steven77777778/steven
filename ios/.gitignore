@@ -2,3 +2,5 @@
 build/
 App/Info.plist
 Widget/Info.plist
+App/InfoBunny.plist
+Widget/InfoBunny.plist

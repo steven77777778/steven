@@ -28,12 +28,12 @@ private let appActions: [AppPetAction] = [
 ]
 
 struct ContentView: View {
-    @AppStorage("pet") private var pet = "martian"      // 目前在 app 裡看的是哪一隻
+    private let pet = isBunnyApp ? "bunny" : "martian"   // 這個 app 是哪一隻（兩個 app 各一隻）
     @State private var idleFrame = 0
     @State private var idleLook = "L"         // 待機時用哪一組眼神（左、過渡 A、過渡 B、右）
     @State private var activeSprite: String?
-    @State private var activeLabel = "今日も火星が見える"
-    @State private var activeRefNote = "待機呼吸中 (#64/#80) · 版本 24"
+    @State private var activeLabel = isBunnyApp ? "白色長耳" : "今日も火星が見える"
+    @State private var activeRefNote = "待機中 · 版本 25"
     @State private var activeActionId = "idle"
     @State private var nextIdx = 0
     @State private var actionTask: Task<Void, Never>?
@@ -43,7 +43,7 @@ struct ContentView: View {
     @State private var glassCrackedOrigin: UnitPoint?
     @State private var glassFlash = false
     @State private var shakeX: CGFloat = 0
-    @State private var statusHint = "點火星人或下方按鈕播放動作 · 球棒會敲碎玻璃"
+    @State private var statusHint = isBunnyApp ? "點牠或下方按鈕播放動作" : "點火星人或下方按鈕播放動作 · 球棒會敲碎玻璃"
 
     private let idleTimer = Timer.publish(every: 0.16, on: .main, in: .common).autoconnect()
     private let marsRed = Color(red: 0.85, green: 0.26, blue: 0.29)
@@ -161,25 +161,6 @@ struct ContentView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        actionTask?.cancel()
-                        activeSprite = nil
-                        activeActionId = "idle"
-                        glassCrackedOrigin = nil
-                        pet = pet == "bunny" ? "martian" : "bunny"
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "arrow.left.arrow.right")
-                            Text(pet == "bunny" ? "換火星人" : "換白色長耳")
-                                .font(.system(size: 13, weight: .medium, design: .rounded))
-                        }
-                        .foregroundStyle(.white.opacity(0.9))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .marsLiquidGlassCapsule(interactive: true)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
                         islandOn ? stopIsland() : startIsland()
                     } label: {
                         HStack(spacing: 6) {
@@ -196,7 +177,7 @@ struct ContentView: View {
 
                     Button {
                         WidgetCenter.shared.reloadAllTimelines()
-                        statusHint = "已同步刷新桌面小工具！回主畫面看看火星人吧 ✦"
+                        statusHint = "已同步刷新桌面小工具！"
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.clockwise")
@@ -272,14 +253,14 @@ struct ContentView: View {
                     glassCrackedOrigin = nil
                 }
             }
-            activeLabel = "今日も火星が見える"
-            activeRefNote = "待機呼吸中 (#64/#80) · 版本 24"
+            activeLabel = isBunnyApp ? "白色長耳" : "今日も火星が見える"
+            activeRefNote = "待機中 · 版本 25"
         }
     }
 
     private func startIsland() {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            statusHint = "請到 iOS「設定 → 火星人」開啟「即時動態」權限"
+            statusHint = "請到 iOS「設定」裡這個 app 的頁面開啟「即時動態」權限"
             return
         }
         do {
@@ -301,7 +282,7 @@ struct ContentView: View {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
             islandOn = false
-            statusHint = "點火星人或下方按鈕播放動作"
+            statusHint = isBunnyApp ? "點牠或下方按鈕播放動作" : "點火星人或下方按鈕播放動作"
         }
     }
 }
