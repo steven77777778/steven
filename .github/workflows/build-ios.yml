@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-26   # macos-15 的機器排隊太久，改用另一批較新的 Mac 機器
+    runs-on: macos-26   # 新一批的 Mac 機器，排隊時間比 macos-15 短
     steps:
       - uses: actions/checkout@v4
 

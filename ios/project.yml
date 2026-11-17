@@ -19,7 +19,7 @@ targets:
     platform: iOS
     sources: [App, Shared]
     info:
-      path: App/Info.plist
+      path: Plists/MarsPet.plist
       properties:
         CFBundleDisplayName: "\u3164"   # 看不見的空白字元：主畫面上 app 與小工具下方不顯示名稱
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -38,7 +38,7 @@ targets:
     platform: iOS
     sources: [Widget, Shared]
     info:
-      path: Widget/Info.plist
+      path: Plists/MarsPetWidget.plist
       properties:
         CFBundleDisplayName: "\u3164"   # 看不見的空白字元：主畫面上 app 與小工具下方不顯示名稱
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -54,7 +54,7 @@ targets:
     platform: iOS
     sources: [App, Shared]
     info:
-      path: App/InfoBunny.plist
+      path: Plists/Bunny.plist
       properties:
         CFBundleDisplayName: "\u3164"
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -74,7 +74,7 @@ targets:
     platform: iOS
     sources: [Widget, Shared]
     info:
-      path: Widget/InfoBunny.plist
+      path: Plists/BunnyWidget.plist
       properties:
         CFBundleDisplayName: "\u3164"
         CFBundleShortVersionString: $(MARKETING_VERSION)
