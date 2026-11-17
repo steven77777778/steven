@@ -109,7 +109,11 @@ enum PetBackdropStyle: String, AppEnum {
 }
 
 struct PetWidgetConfig: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = isBunnyApp ? "白色長耳" : "火星人桌寵"
+#if BUNNY
+    static var title: LocalizedStringResource = "白色長耳"
+#else
+    static var title: LocalizedStringResource = "火星人桌寵"
+#endif
     static var description = IntentDescription("選擇小工具放在主畫面的哪一格（底圖會換成那一格的桌布，看起來像透明），以及點擊後的動作。")
 
      // 預設用桌布底圖營造透明感；位置要選小工具實際所在的那一格，底圖才會和桌布接起來
